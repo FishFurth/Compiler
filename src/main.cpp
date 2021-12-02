@@ -534,7 +534,7 @@ int ConstExp(int st, int en)
 					match_num = -1;
 					for(k = 0; k < vars_num; k++)
 					{
-						if(Name == vars[k].name && vars[k].is_const == true && vars[k].dim == dim && vars[k].start_block < i && vars[k].end_block >= j)
+						if(Name == vars[k].name && vars[k].is_const == true && vars[k].dim == 0 && vars[k].start_block < i && vars[k].end_block >= j)
 						{
 							if(match_num == -1)
 							match_num = k;
