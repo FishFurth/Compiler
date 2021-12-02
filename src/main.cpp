@@ -97,6 +97,7 @@ int break_id[1000];
 int break_num = 0;
 int continue_id[1000];
 int continue_num = 0;
+int else_pos = -1;
 
 //int end_block_num = 0;
 void Read_lines(int st, int en);
@@ -2414,6 +2415,86 @@ void IF(int st, int en, int mid) //nows is after if, mid is before else, -1 mean
 		e_code_num++;
 	}
 }
+int find_stmt_end(int st, int en) // st is before if/while/others, return pos is ; or }
+{
+	int i, j, k;
+	int if_num = 0;
+	j = st;
+	while(j < en && !(a[j] == '!' || (a[j] >= '%' && a[j] <= 126)))
+	j++;
+	if(j + 1 < en && a[j] == 'i' && a[j+1] == 'f' && (j + 2 == en || !((a[j+2] <= 'z' && a[j+2] >= 'a') || (a[j+2] <= '9' && a[j+2] >= '0') || a[j+2] == '_' || (a[j+2] <= 'Z' && a[j+2] >= 'A'))))
+	{
+		j += 2;
+		while(j < en && a[j] != '(')
+		j++;
+		k = 1;
+		while(k > 0)
+		{
+			j++;
+			if(a[j] == '(')
+			k++;
+			else if(a[j] == ')')
+			k--;
+		}
+		j++;
+		j = find_stmt_end(j, en);
+		k = j;
+		j++;
+		while(!(a[j] == '!' || (a[j] >= '%' && a[j] <= 126)))
+		j++;
+		if(j + 3 < en && a[j] == 'e' && a[j+1] == 'l' && a[j+2] == 's' && a[j+3] == 'e' && (!((a[j+4] <= 'z' && a[j+4] >= 'a') || (a[j+4] <= '9' && a[j+4] >= '0') || a[j+4] == '_' || (a[j+4] <= 'Z' && a[j+4] >= 'A'))))
+		{
+			k = find_stmt_end(j+4, en);
+			else_pos = j;
+		}
+		else
+		else_pos = -1;
+		return k;
+	}
+	else if(j + 5 < en && a[j] == 'w' && a[j+1] == 'h' && a[j+2] == 'i' && a[j+3] == 'l' && a[j+4] == 'e' && (!((a[j+5] <= 'z' && a[j+5] >= 'a') || (a[j+5] <= '9' && a[j+5] >= '0') || a[j+5] == '_' || (a[j+5] <= 'Z' && a[j+5] >= 'A'))))
+	{
+		j += 5;
+		while(j < en && a[j] != '(')
+		j++;
+		k = 1;
+		while(k > 0)
+		{
+			j++;
+			if(a[j] == '(')
+			k++;
+			else if(a[j] == ')')
+			k--;
+		}
+		j++;
+		k = find_stmt_end(j, en);
+		else_pos = -1;
+		return k;
+	}
+	else
+	{
+		while(j < en && a[j] != ';' && a[j] != '{')
+		j++;
+		if(j >= en)
+		{
+			cout << "j > en error" << endl;
+			return en;
+		}
+		if(a[j] == '{')
+		{
+			k = 1;
+			while(k > 0)
+			{
+				j++;
+				if(a[j] == '{')
+				k++;
+				else if(a[j] == '}')
+				k--;
+			}
+		}
+		else_pos = -1;
+		return j;
+	}
+}
 void Read_lines(int st, int en)
 {
 	int i, j, k, l, m, mid, dim, match_num, va;
@@ -2421,6 +2502,13 @@ void Read_lines(int st, int en)
 	while(i < en)
 	{
 		string Name;
+		/*
+		cout << "now, i = " << i << ", and en = " << en << endl;
+		cout << "a[now] = ";
+		for(int y = 0; y < 12; y++)
+		cout << a[i+y];
+		cout << endl;
+		*/
 		int tmp[100] = {};
 		while(i < en && !(a[i] == '!' || (a[i] >= '%' && a[i] <= 126)))
 		i++;
@@ -2543,98 +2631,19 @@ void Read_lines(int st, int en)
 		else if(i + 5 < en && a[i] == 'w' && a[i+1] == 'h' && a[i+2] == 'i' && a[i+3] == 'l' && a[i+4] == 'e' && (!((a[i+5] <= 'z' && a[i+5] >= 'a') || (a[i+5] <= '9' && a[i+5] >= '0') || a[i+5] == '_' || (a[i+5] <= 'Z' && a[i+5] >= 'A')))) // while
 		{
 			{
-				i += 5;
-				l = i;
-				while(a[i] != '(')
-				i++;
-				j = i;
-				i++;
-				k = 1;
-				while(k > 0)
-				{
-					j++;
-					if(a[j] == '(')
-					k++;
-					else if(a[j] == ')')
-					k--;
-				}
-				while(j < en && a[j] != '{' && a[j] != ';')
+				j = find_stmt_end(i, en);
 				j++;
-				if(a[j] == '{')
-				{
-					k = 1;
-					while(k > 0)
-					{
-						j++;
-						if(a[j] == '{')
-						k++;
-						else if(a[j] == '}')
-						k--;
-					}
-				}
-				j++;
-				WHILE(l, j);
+				WHILE(i+5, j);
 				i = j;
 			}
 		}
 		else if(i + 2 < en && a[i] == 'i' && a[i+1] == 'f' && (!((a[i+2] <= 'z' && a[i+2] >= 'a') || (a[i+2] <= '9' && a[i+2] >= '0') || a[i+2] == '_' || (a[i+2] <= 'Z' && a[i+2] >= 'A')))) // if
 		{
 			{
-				i += 2;
-				l = i;
-				while(a[i] != '(')
-				i++;
-				j = i;
-				i++;
-				k = 1;
-				while(k > 0)
-				{
-					j++;
-					if(a[j] == '(')
-					k++;
-					else if(a[j] == ')')
-					k--;
-				}
-				while(j < en && a[j] != '{' && a[j] != ';')
+				j = find_stmt_end(i, en);
 				j++;
-				if(a[j] == '{')
-				{
-					k = 1;
-					while(k > 0)
-					{
-						j++;
-						if(a[j] == '{')
-						k++;
-						else if(a[j] == '}')
-						k--;
-					}
-				}
-				j++;
-				while(!(a[j] == '!' || (a[j] >= '%' && a[j] <= 126)))
-				j++;
-				if(j + 3 < en && a[j] == 'e' && a[j+1] == 'l' && a[j+2] == 's' && a[j+3] == 'e' && (!((a[j+4] <= 'z' && a[j+4] >= 'a') || (a[j+4] <= '9' && a[j+4] >= '0') || a[j+4] == '_' || (a[j+4] <= 'Z' && a[j+4] >= 'A'))))
-				{
-					mid = j;
-					j = j + 4;
-					while(j < en && a[j] != '{' && a[j] != ';')
-					j++;
-					if(a[j] == '{')
-					{
-						k = 1;
-						while(k > 0)
-						{
-							j++;
-							if(a[j] == '{')
-							k++;
-							else if(a[j] == '}')
-							k--;
-						}
-					}
-					j++;
-				}
-				else
-				mid = -1;
-				IF(l, j, mid);
+				mid = else_pos;
+				IF(i+2, j, mid);
 				i = j;
 			}
 		}
@@ -2843,7 +2852,7 @@ int main(int argc, char *argv[])
 {
 	/*char c;
 	c = cin.get();
-	while(c != 'x')
+	while(c != '$')
 	{
 		a[n] = c;
 		n++;
