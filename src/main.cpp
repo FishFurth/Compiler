@@ -2889,7 +2889,6 @@ void Adjust_order()
 		{
 			while(!(e_code[k].size() > 4 && e_code[k][0] == 'e' && e_code[k][1] == 'n' && e_code[k][2] == 'd' && e_code[k][3] == ' ' ))
 			k++;
-			k++;
 		}
 		else
 		{
