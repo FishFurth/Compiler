@@ -2851,11 +2851,46 @@ void comments_cross_lines()/*"**/
 }
 void Adjust_order()
 {
-	int i, j, k = 0, l, m;
+	int i, j, k = 0, l, m, kk;
+	for(l = 0; l < e_code_num; l++)
+	{
+		if(e_code[l].size() > 7 && e_code[l][0] == 'f' && e_code[l][1] == '_' && e_code[l][2] == 'm' && e_code[l][3] == 'a' && e_code[l][4] == 'i' && e_code[l][5] == 'n' && e_code[l][6] == ' ')
+		break;
+	}
+	m = l;
 	for(i = 0; i < e_code_num; i++)
 	{
 		string tmps;
-		if(e_code[i][0] == 'v')
+		if(e_code[i][0] == 'f' && e_code[i][1] == '_' && i != m)
+		{
+			kk = i + 1;
+			while(!(e_code[i].size() > 4 && e_code[i][0] == 'e' && e_code[i][1] == 'n' && e_code[i][2] == 'd' && e_code[i][3] == ' ' ))
+			{
+				i++;
+				string tmpss;
+				if(e_code[i][0] == 'v')
+				{
+					if(i == kk)
+					{
+						kk++;
+						continue;
+					}
+					for(j = 0; j < e_code[i].size(); j++)
+					tmpss += e_code[i][j];
+					for(j = i; j > kk; j--)
+					{
+						e_code[j].clear();
+						for(l = 0; l < e_code[j-1].size(); l++)
+						e_code[j] += e_code[j-1][l];
+					}
+					e_code[kk].clear();
+					for(l = 0; l < tmpss.size(); l++)
+					e_code[kk] += tmpss[l];
+					kk++;
+				}
+			}
+		}
+		else if(e_code[i][0] == 'v')
 		{
 			if(i == k)
 			{
@@ -2876,13 +2911,13 @@ void Adjust_order()
 			k++;
 		}
 	}
-	for(l = k; l < e_code_num; l++)
+	for(l = 0; l < e_code_num; l++)
 	{
 		if(e_code[l].size() > 7 && e_code[l][0] == 'f' && e_code[l][1] == '_' && e_code[l][2] == 'm' && e_code[l][3] == 'a' && e_code[l][4] == 'i' && e_code[l][5] == 'n' && e_code[l][6] == ' ')
 		break;
 	}
 	m = l;
-	for(; k < l; k++)
+	for(k = 0; k < l; k++)
 	{
 		string tmps;
 		if(e_code[k][0] == 'f' && e_code[k][1] == '_')
@@ -2890,6 +2925,8 @@ void Adjust_order()
 			while(!(e_code[k].size() > 4 && e_code[k][0] == 'e' && e_code[k][1] == 'n' && e_code[k][2] == 'd' && e_code[k][3] == ' ' ))
 			k++;
 		}
+		else if(e_code[k][0] == 'v')
+		continue;
 		else
 		{
 			for(j = 0; j < e_code[k].size(); j++)
