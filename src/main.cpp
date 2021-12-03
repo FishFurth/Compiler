@@ -1012,7 +1012,7 @@ int Exp(int st, int en) // Here val denotes the id of a var.
 				else if(a[j] == '[')
 				{
 					l = 1;
-					dim = 0;
+					dim = 1;
 					memset(tmp, 0, sizeof(tmp));
 					for(k = j + 1; k < en; k++)
 					{
