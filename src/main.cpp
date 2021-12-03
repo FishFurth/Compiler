@@ -1079,7 +1079,7 @@ int Exp(int st, int en) // Here val denotes the id of a var.
 						if(vars[match_num].is_arg == true)
 						e_code[e_code_num] = "T" + to_string(e_var_num) + " = p" + to_string(va) + "[T" + to_string(l) +"]";
 						else if(dim != vars[match_num].dim)
-						e_code[e_code_num] = "T" + to_string(e_var_num) + " = T" + to_string(va) + "T" + to_string(l);
+						e_code[e_code_num] = "T" + to_string(e_var_num) + " = T" + to_string(va) + "+ T" + to_string(l);
 						else
 						e_code[e_code_num] = "T" + to_string(e_var_num) + " = T" + to_string(va) + "[T" + to_string(l) +"]";
 						e_code_num++;
