@@ -1012,7 +1012,7 @@ int Exp(int st, int en) // Here val denotes the id of a var.
 				else if(a[j] == '[')
 				{
 					l = 1;
-					dim = 1;
+					dim = 0;
 					memset(tmp, 0, sizeof(tmp));
 					for(k = j + 1; k < en; k++)
 					{
@@ -1078,8 +1078,6 @@ int Exp(int st, int en) // Here val denotes the id of a var.
 						e_code_num++;
 						if(vars[match_num].is_arg == true)
 						e_code[e_code_num] = "T" + to_string(e_var_num) + " = p" + to_string(va) + "[T" + to_string(l) +"]";
-						else if(dim != vars[match_num].dim)
-						e_code[e_code_num] = "T" + to_string(e_var_num) + " = T" + to_string(va) + "+ T" + to_string(l);
 						else
 						e_code[e_code_num] = "T" + to_string(e_var_num) + " = T" + to_string(va) + "[T" + to_string(l) +"]";
 						e_code_num++;
