@@ -20,6 +20,7 @@
 #include <chrono>
 using namespace std;
 
+int debug_mode[20] = {};
 char a[1000000] = {};
 int nows = 0;
 int n = 0;
@@ -718,6 +719,13 @@ int Exp(int st, int en) // Here val denotes the id of a var.
 	int match_num;
 	bool need_re = false;
 	en = Useful_sign(st, en);
+	if(debug_mode[0] != 0)
+	{
+		cout << "in exp, " << st << ' ' << en << endl;
+		for(i = st; i < en; i++)
+		cout << a[i];
+		cout << endl;
+	}
 	i = st;
 	if(en <= st)
 	{
@@ -2843,7 +2851,7 @@ void comments_cross_lines()/*"**/
 }
 void Adjust_order()
 {
-	int i, j, k = 0, l;
+	int i, j, k = 0, l, m;
 	for(i = 0; i < e_code_num; i++)
 	{
 		string tmps;
@@ -2866,6 +2874,38 @@ void Adjust_order()
 			for(l = 0; l < tmps.size(); l++)
 			e_code[k] += tmps[l];
 			k++;
+		}
+	}
+	for(l = k; l < e_code_num; l++)
+	{
+		if(e_code[l].size() > 7 && e_code[l][0] == 'f' && e_code[l][1] == '_' && e_code[l][2] == 'm' && e_code[l][3] == 'a' && e_code[l][4] == 'i' && e_code[l][5] == 'n' && e_code[l][6] == ' ')
+		break;
+	}
+	m = l;
+	for(; k < l; k++)
+	{
+		string tmps;
+		if(e_code[k][0] == 'f' && e_code[k][1] == '_')
+		{
+			while(!(e_code[k].size() > 4 && e_code[k][0] == 'e' && e_code[k][1] == 'n' && e_code[k][2] == 'd' && e_code[k][3] == ' ' ))
+			k++;
+			k++;
+		}
+		else
+		{
+			for(j = 0; j < e_code[k].size(); j++)
+			tmps += e_code[k][j];
+			for(j = k; j < m; j++)
+			{
+				e_code[j].clear();
+				for(i = 0; i < e_code[j+1].size(); i++)
+				e_code[j] += e_code[j+1][i];
+			}
+			e_code[m].clear();
+			for(i = 0; i < tmps.size(); i++)
+			e_code[m] += tmps[i];
+			l--;
+			k--;
 		}
 	}
 }
