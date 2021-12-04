@@ -1874,7 +1874,7 @@ int Cond(int st, int en) // Here val denotes the id of a var.
 }
 void Var_def(int st, int en) //nows is after int
 {
-	int i, j, k, l, m, va, coun = -1;
+	int i, j, k, l, m, va, coun = -1, kk;
 	int con_exp;
 	int arr[10] = {};
 	int is_in_f;
@@ -1985,6 +1985,7 @@ void Var_def(int st, int en) //nows is after int
 	{
 		k = 0;
 		l = 0;
+		kk = 0;
 		is_ele = false;
 		while(a[Nows] != ';' && ((k != 0 || l != 0) || a[Nows] != ','))
 		{
@@ -2039,6 +2040,10 @@ void Var_def(int st, int en) //nows is after int
 				j = j * vars[vars_num].d_size[i] + arr[i+1];
 				e_code[e_code_num] = "T" + to_string(*vars[vars_num].value) + "[" + to_string(4*j) +"] = T" + to_string(va);
 				e_code_num++;
+				for(; kk < j; kk++)
+				e_code[e_code_num] = "T" + to_string(*vars[vars_num].value) + "[" + to_string(4*kk) +"] = 0";
+				e_code_num++;
+				kk++;
 				arr[coun]++;
 			}
 			if(a[Nows] != ';' && ((k != 0 || l != 0) || a[Nows] != ','))
@@ -2052,7 +2057,7 @@ void Var_def(int st, int en) //nows is after int
 }
 void Const_def(int st, int en) //nows is after int
 {
-	int i, j, k, va, coun = -1;
+	int i, j, k, va, coun = -1, kk;
 	int con_exp;
 	int arr[10] = {};
 	int is_in_f;
