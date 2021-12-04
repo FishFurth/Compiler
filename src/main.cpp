@@ -735,6 +735,7 @@ int Exp(int st, int en) // Here val denotes the id of a var.
 	{
 		string Name;
 		string Tmp_code;
+		int tmp3[100];
 		if(nodes[now_node].ch == 0) // AE -> ME MA
 		{
 			nodes[now_node].left_son = node_num + 1;
@@ -934,7 +935,7 @@ int Exp(int st, int en) // Here val denotes the id of a var.
 					j++;
 					i = j;
 					kk = 0;
-					memset(tmp, 0, sizeof(tmp));
+					memset(tmp3, 0, sizeof(tmp3));
 					match_num = -1;
 					for(k = 0; k < funcs_num; k++)
 					{
@@ -969,7 +970,7 @@ int Exp(int st, int en) // Here val denotes the id of a var.
 								e_code_num++;
 								for(k = 0; k < kk; k++)
 								{
-									e_code[e_code_num] = "param T" + to_string(tmp[k]);
+									e_code[e_code_num] = "param T" + to_string(tmp3[k]);
 									e_code_num++;
 								}
 								e_code[e_code_num] = "param T" + to_string(e_var_num);
@@ -997,7 +998,7 @@ int Exp(int st, int en) // Here val denotes the id of a var.
 							e_code_num++;
 							e_code[e_code_num] = "T" + to_string(e_var_num) + " = T" + to_string(va);
 							e_code_num++;
-							tmp[kk] = e_var_num;
+							tmp3[kk] = e_var_num;
 							kk++;
 							e_var_num++;
 							i++;
