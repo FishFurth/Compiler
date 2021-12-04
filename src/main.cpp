@@ -2041,14 +2041,21 @@ void Var_def(int st, int en) //nows is after int
 				e_code[e_code_num] = "T" + to_string(*vars[vars_num].value) + "[" + to_string(4*j) +"] = T" + to_string(va);
 				e_code_num++;
 				for(; kk < j; kk++)
-				e_code[e_code_num] = "T" + to_string(*vars[vars_num].value) + "[" + to_string(4*kk) +"] = 0";
-				e_code_num++;
+				{
+					e_code[e_code_num] = "T" + to_string(*vars[vars_num].value) + "[" + to_string(4*kk) +"] = 0";
+					e_code_num++;
+				}
 				kk++;
 				arr[coun]++;
 			}
 			if(a[Nows] != ';' && ((k != 0 || l != 0) || a[Nows] != ','))
 			Nows++;
 		}
+	}
+	for(; kk < vars[vars_num].size; kk++)
+	{
+		e_code[e_code_num] = "T" + to_string(*vars[vars_num].value) + "[" + to_string(4*kk) +"] = 0";
+		e_code_num++;
 	}
 	vars_num++;
 	if(a[Nows] == ',')
