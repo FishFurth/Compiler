@@ -713,7 +713,7 @@ int Exp(int st, int en) // Here val denotes the id of a var.
 	nodes[node_num].father = -1;
 	nodes[node_num].ch = 0;
 	int i = st;
-	int j, k, l, dim;
+	int j, k, l, dim, kk;
 	int now_node = 0;
 	int va;
 	int match_num;
@@ -933,6 +933,8 @@ int Exp(int st, int en) // Here val denotes the id of a var.
 					l = 1;
 					j++;
 					i = j;
+					kk = 0;
+					memset(tmp, 0, sizeof(tmp));
 					match_num = -1;
 					for(k = 0; k < funcs_num; k++)
 					{
@@ -965,6 +967,11 @@ int Exp(int st, int en) // Here val denotes the id of a var.
 								e_code_num++;
 								e_code[e_code_num] = "T" + to_string(e_var_num) + " = T" + to_string(va);
 								e_code_num++;
+								for(k = 0; k < kk; k++)
+								{
+									e_code[e_code_num] = "param T" + to_string(tmp[k]);
+									e_code_num++;
+								}
 								e_code[e_code_num] = "param T" + to_string(e_var_num);
 								e_code_num++;
 								e_var_num++;
@@ -990,8 +997,8 @@ int Exp(int st, int en) // Here val denotes the id of a var.
 							e_code_num++;
 							e_code[e_code_num] = "T" + to_string(e_var_num) + " = T" + to_string(va);
 							e_code_num++;
-							e_code[e_code_num] = "param T" + to_string(e_var_num);
-							e_code_num++;
+							tmp[kk] = e_var_num;
+							kk++;
 							e_var_num++;
 							i++;
 							j = i;
