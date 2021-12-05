@@ -121,6 +121,7 @@ struct Tcode{ // define as above
 	int continue_id[1000];
 	int continue_num = 0;
 	int else_pos = -1;
+	int is_arr[10000] = {};
 // global def end
 
 //int end_block_num = 0;
@@ -3069,7 +3070,10 @@ int E_func(int st)
 			if(l == 0)
 			kk++;
 			else
-			kk += (l / 4);
+			{
+				kk += (l / 4);
+				is_arr[k] = 1;
+			}
 		}
 		else
 		break;
@@ -3101,7 +3105,7 @@ int E_func(int st)
 		t_code[t_code_num].type = 12;
 		t_code[t_code_num].arg1 = j;
 		t_code[t_code_num].arg2 = kk + j;
-		t_code[t_code_num].Code = "store a" + to_string(j) + to_string(j + kk);
+		t_code[t_code_num].Code = "store a" + to_string(j) + " " + to_string(j + kk);
 		t_code_num++;
 	}
 	for(i = i + 1; i < e_code_num; i++)
@@ -3178,11 +3182,22 @@ int E_func(int st)
 				}
 				else
 				{
-					t_code[t_code_num].type = 13;
-					t_code[t_code_num].arg1 = var_location[k];
-					t_code[t_code_num].arg2 = 0;
-					t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " a0";
-					t_code_num++;
+					if(is_arr[k] == 0)
+					{
+						t_code[t_code_num].type = 13;
+						t_code[t_code_num].arg1 = var_location[k];
+						t_code[t_code_num].arg2 = 0;
+						t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " a0";
+						t_code_num++;
+					}
+					else
+					{
+						t_code[t_code_num].type = 15;
+						t_code[t_code_num].arg1 = var_location[k];
+						t_code[t_code_num].arg2 = 0;
+						t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " a0";
+						t_code_num++;
+					}
 				}
 				t_code[t_code_num].type = 11;
 				t_code[t_code_num].Code = "return";
@@ -3441,12 +3456,20 @@ int E_func(int st)
 					t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " a" + to_string(p_num);
 					t_code_num++;
 				}
-				else
+				else if(is_arr[k] == 0)
 				{
 					t_code[t_code_num].type = 13;
 					t_code[t_code_num].arg1 = var_location[k];
 					t_code[t_code_num].arg2 = p_num;
 					t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " a" + to_string(p_num);
+					t_code_num++;
+				}
+				else
+				{
+					t_code[t_code_num].type = 15;
+					t_code[t_code_num].arg1 = var_location[k];
+					t_code[t_code_num].arg2 = p_num;
+					t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " a" + to_string(p_num);
 					t_code_num++;
 				}
 				p_num++;
@@ -4268,6 +4291,14 @@ int E_func(int st)
 								t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t2";
 								t_code_num++;
 							}
+							else if(is_arr[k] == 1)
+							{
+								t_code[t_code_num].type = 15;
+								t_code[t_code_num].arg1 = var_location[k];
+								t_code[t_code_num].arg2 = 10;
+								t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t2";
+								t_code_num++;
+							}
 							else
 							{
 								t_code[t_code_num].type = 13;
@@ -4339,6 +4370,14 @@ int E_func(int st)
 								t_code[t_code_num].arg1 = k;
 								t_code[t_code_num].arg2 = 9;
 								t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t1";
+								t_code_num++;
+							}
+							else if(is_arr[k] == 1)
+							{
+								t_code[t_code_num].type = 15;
+								t_code[t_code_num].arg1 = var_location[k];
+								t_code[t_code_num].arg2 = 9;
+								t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t1";
 								t_code_num++;
 							}
 							else
@@ -4471,6 +4510,14 @@ int E_func(int st)
 								t_code[t_code_num].arg1 = k;
 								t_code[t_code_num].arg2 = 9;
 								t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t1";
+								t_code_num++;
+							}
+							else if(is_arr[k] == 1)
+							{
+								t_code[t_code_num].type = 15;
+								t_code[t_code_num].arg1 = var_location[k];
+								t_code[t_code_num].arg2 = 9;
+								t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t1";
 								t_code_num++;
 							}
 							else
