@@ -4520,8 +4520,8 @@ int E_func(int st)
 				}
 			}
 		}
-		else
-		cout << "miss something? " << endl << e_code[i] << endl;
+		//else
+		//cout << "miss something? " << endl << e_code[i] << endl;
 	}
 }
 void eeyore2tigger()
