@@ -102,7 +102,7 @@ struct Tcode{ // define as above
 	//const_var cons[10000];
 	block blo[10000] = {};
 	string e_code[100000];
-	Tcode t_code[100000];
+	Tcode t_code[500000];
 	func funcs[1000];
 	int var_location[20000] = {}; // -1 for global
 	int vars_num = 0;
