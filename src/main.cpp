@@ -4252,12 +4252,20 @@ int E_func(int st)
 								break;
 								k = k * 10 + (e_code[i][l] - '0');
 							}
-							if(var_location[k] <= -1) // global
+							if(var_location[k] == -1) // global
 							{
 								t_code[t_code_num].type = 14;
 								t_code[t_code_num].arg1 = k;
 								t_code[t_code_num].arg2 = 10;
 								t_code[t_code_num].Code = "load v" + to_string(k) + " t2";
+								t_code_num++;
+							}
+							else if(var_location[k] == -2) // global
+							{
+								t_code[t_code_num].type = 16;
+								t_code[t_code_num].arg1 = k;
+								t_code[t_code_num].arg2 = 10;
+								t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t2";
 								t_code_num++;
 							}
 							else
@@ -4317,12 +4325,20 @@ int E_func(int st)
 								break;
 								k = k * 10 + (e_code[i][j] - '0');
 							}
-							if(var_location[k] <= -1) // global
+							if(var_location[k] == -1) // global
 							{
 								t_code[t_code_num].type = 14;
 								t_code[t_code_num].arg1 = k;
 								t_code[t_code_num].arg2 = 9;
 								t_code[t_code_num].Code = "load v" + to_string(k) + " t1";
+								t_code_num++;
+							}
+							else if(var_location[k] == -2) // global
+							{
+								t_code[t_code_num].type = 16;
+								t_code[t_code_num].arg1 = k;
+								t_code[t_code_num].arg2 = 9;
+								t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t1";
 								t_code_num++;
 							}
 							else
