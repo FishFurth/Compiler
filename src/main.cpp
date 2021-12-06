@@ -4779,21 +4779,21 @@ void tigger2riscv(ofstream & o)
 				o << "add " << regs[t_code[i].arg2] << ", t5, sp" << endl;
 			}
 		}
-		else if(t_code[i].type == 16)
+		else if(t_code[i].type == 16) // loadaddr global_var reg
 		o << "la " << regs[t_code[i].arg2] << ", v" << t_code[i].arg1 << endl;
-		else if(t_code[i].type == 17)
+		else if(t_code[i].type == 17) // global var
 		{
 			o << ".global v" << t_code[i].arg1 << endl;
 			o << ".section .sdata" << endl;
 			o << ".align 2" << endl;
-			o << ".type global_var, @object" << endl;
-			o << ".size global_var, 4" << endl;
-			o << "global_var:" << endl;
+			o << ".type v" << t_code[i].arg1 << ", @object" << endl;
+			o << ".size v" << t_code[i].arg1 << ", 4" << endl;
+			o << 'v' << t_code[i].arg1 << ':' << endl;
 			o << ".word " << t_code[i].arg2 << endl;
 		}
-		else if(t_code[i].type == 18)
+		else if(t_code[i].type == 18) // var malloc
 		o << ".comm v" << t_code[i].arg1 << ", " << t_code[i].arg2 << ", 4" << endl;
-		else if(t_code[i].type == 19)
+		else if(t_code[i].type == 19) // func start
 		{
 			o << ".text" << endl;
 			o << ".align 2" << endl;
@@ -4803,7 +4803,7 @@ void tigger2riscv(ofstream & o)
 			o << "addi sp, sp, " << -t_code[i].arg3 << endl;
 			o << "sw ra, " << t_code[i].arg3 - 4 << "(sp)" << endl;
 		}
-		else if(t_code[i].type == 20)
+		else if(t_code[i].type == 20) // end func
 		o << ".size " << t_code[i].op << ", .-" << t_code[i].op << endl;
 	}
 }
