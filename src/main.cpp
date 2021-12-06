@@ -4812,6 +4812,8 @@ void tigger2riscv(ofstream & o)
 int main(int argc, char *argv[])
 {
 	/*char c;
+	ofstream o;
+	o.open("1.txt");
 	c = cin.get();
 	while(c != '$')
 	{
@@ -4826,13 +4828,14 @@ int main(int argc, char *argv[])
 	Read_lines(0, n);
 	Adjust_order();
 	eeyore2tigger();
+	tigger2riscv(o);
 	for(int i = 0; i < t_code_num; i++)
 	cout << t_code[i].Code << endl;*/
 	char c;
 	ofstream o;
 	ifstream ifs;
-	ifs.open(argv[3]);
-	o.open(argv[5]);
+	ifs.open(argv[2]);
+	o.open(argv[4]);
 	while((c = ifs.get()) != EOF)
 	{
 		a[n] = c;
