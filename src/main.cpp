@@ -4742,7 +4742,7 @@ void tigger2riscv(ofstream & o)
 			o << "addi sp, sp, " << t_code[i].arg1 << endl;
 			o << "ret" << endl;
 		}
-		else if(t_code[i].type == 12)
+		else if(t_code[i].type == 12) // store reg int10
 		{
 			if(t_code[i].arg2 < 512 && t_code[i].arg2 > -512)
 			o << "sw " << regs[t_code[i].arg1] << ", " << t_code[i].arg2 * 4 << "(sp)" << endl;
@@ -4766,8 +4766,8 @@ void tigger2riscv(ofstream & o)
 		}
 		else if(t_code[i].type == 14) // load global_var reg
 		{
-			o << "lui " << regs[t_code[i].arg2] << "\%hi(v" << t_code[i].arg1 << ")" << endl;
-			o << "lw " << regs[t_code[i].arg2] << "\%lo(v" << t_code[i].arg1 << ")(" << regs[t_code[i].arg2] << ')' << endl;
+			o << "lui " << regs[t_code[i].arg2] << ", \%hi(v" << t_code[i].arg1 << ")" << endl;
+			o << "lw " << regs[t_code[i].arg2] << ", \%lo(v" << t_code[i].arg1 << ")(" << regs[t_code[i].arg2] << ')' << endl;
 		}
 		else if(t_code[i].type == 15) //loadaddr int10 reg
 		{
@@ -4799,7 +4799,7 @@ void tigger2riscv(ofstream & o)
 			o << ".align 2" << endl;
 			o << ".global " << t_code[i].op << endl;
 			o << ".type " << t_code[i].op << ", @function" << endl;
-			o << "func:" << endl;
+			o << t_code[i].op << ":" << endl;
 			o << "addi sp, sp, " << -t_code[i].arg3 << endl;
 			o << "sw ra, " << t_code[i].arg3 - 4 << "(sp)" << endl;
 		}
