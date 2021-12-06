@@ -2962,6 +2962,8 @@ void IF(int st, int en);
 		for(k = 0; k < l; k++)
 		{
 			string tmps[400];
+			if(e_code[k].size() > 7 && e_code[k][0] == 'f' && e_code[k][1] == '_' && e_code[k][2] == 'm' && e_code[k][3] == 'a' && e_code[k][4] == 'i' && e_code[k][5] == 'n' && e_code[k][6] == ' ')
+			break;
 			if(e_code[k][0] == 'f' && e_code[k][1] == '_')
 			{
 				while(!(e_code[k].size() > 4 && e_code[k][0] == 'e' && e_code[k][1] == 'n' && e_code[k][2] == 'd' && e_code[k][3] == ' ' ))
@@ -2991,7 +2993,7 @@ void IF(int st, int en);
 					for(i = 0; i < tmps[kk].size(); i++)
 					e_code[j] += tmps[kk][i];
 				}
-				l-= ll;
+				l -= ll;
 				k--;
 			}
 		}
@@ -4721,7 +4723,7 @@ void tigger2riscv(ofstream & o)
 		else if(t_code[i].type == 5) // arg2 must be 0
 		o << "sw " << regs[t_code[i].arg3] << ", 0(" << regs[t_code[i].arg1] << ')' << endl;
 		else if(t_code[i].type == 6) // arg3 must be 0
-		o << "sw " << regs[t_code[i].arg1] << ", 0(" << regs[t_code[i].arg2] << ')' << endl;
+		o << "lw " << regs[t_code[i].arg1] << ", 0(" << regs[t_code[i].arg2] << ')' << endl;
 		else if(t_code[i].type == 7)
 		{
 			if(t_code[i].op == "<")
@@ -4843,8 +4845,8 @@ int main(int argc, char *argv[])
 	char c;
 	ofstream o;
 	ifstream ifs;
-	ifs.open(argv[3]);
-	o.open(argv[5]);
+	ifs.open(argv[2]);
+	o.open(argv[4]);
 	while((c = ifs.get()) != EOF)
 	{
 		a[n] = c;
@@ -4858,9 +4860,7 @@ int main(int argc, char *argv[])
 	Read_lines(0, n);
 	Adjust_order();
 	eeyore2tigger();
-	for(int i = 0; i < t_code_num; i++)
-	o << t_code[i].Code << endl;
-	//tigger2riscv(o);
+	tigger2riscv(o);
 
 	ifs.close();
 	o.close();
