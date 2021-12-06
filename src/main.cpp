@@ -2991,7 +2991,7 @@ void IF(int st, int en);
 					for(i = 0; i < tmps[kk].size(); i++)
 					e_code[j] += tmps[kk][i];
 				}
-				l--;
+				l-= ll;
 				k--;
 			}
 		}
