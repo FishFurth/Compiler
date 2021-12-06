@@ -20,10 +20,6 @@
 #include <chrono>
 using namespace std;
 
-int debug_mode[20] = {};
-char a[1000000] = {};
-int nows = 0;
-int n = 0;
 struct var{
 	string name;
 	//int len;//0 is int; non-zero is the lenth of a array
@@ -76,7 +72,7 @@ struct node{
 	"goto" LABEL							 8		label
 	LABEL ":"								 9		label
 	"call" FUNCTION							 10							  function
-	"return"								 11
+	"return"								 11		STK
 	"store" Reg NUM							 12		Reg		num
 	"load" NUM Reg							 13		num		Reg
 	"load" VARIABLE Reg						 14		Var		Reg
@@ -84,7 +80,7 @@ struct node{
 	"loadaddr" VARIABLE Reg;				 16		Var		Reg
 	VARIABLE "=" NUM						 17		Var		num
 	VARIABLE "=" "malloc" NUM;				 18		Var		num
-	FUNCTION "[" NUM1 "]" "[" NUM2 "]"		 19		num1	num2		  function
+	FUNCTION "[" NUM1 "]" "[" NUM2 "]"		 19		num1	num2	STK	  function
 	"end" FUNCTION							 20							  function
 
 	Reg: a0-a7: 0~7; t0-t6: 8~14; s0-s11: 15~26; x0: 27.
@@ -98,6 +94,10 @@ struct Tcode{ // define as above
 	string Code;// tigger code
 };
 // global def start
+	int debug_mode[20] = {};
+	char a[1000000] = {};
+	int nows = 0;
+	int n = 0;
 	var vars[10000];
 	//const_var cons[10000];
 	block blo[10000] = {};
@@ -122,6 +122,7 @@ struct Tcode{ // define as above
 	int continue_num = 0;
 	int else_pos = -1;
 	int is_arr[10000] = {};
+	string regs[30] = {"a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7"};
 // global def end
 
 //int end_block_num = 0;
@@ -217,6 +218,7 @@ void IF(int st, int en);
 		return en;
 	}
 // end before start
+
 // eeyore start
 	int INT_CONST(int st, int en)
 	{
@@ -2986,71 +2988,21 @@ void IF(int st, int en);
 		}
 	}
 // eeyore end
+
 // tigger start
-int cal_global()
-{
-	int i, j, k, l, m, kk;
-	for(i = 0; i < e_code_num; i++)
+	int cal_global()
 	{
-		if(e_code[i][0] != 'v')
-		return i;
-		j = 0;
-		while(j < e_code[i].size() && e_code[i][j] != 'T')
-		j++;
-		k = 0;
-		j++;
-		while(j < e_code[i].size())
+		int i, j, k, l, m, kk;
+		for(i = 0; i < e_code_num; i++)
 		{
-			k = k * 10 + (e_code[i][j] - '0');
-			j++;
-		}
-		l = 0;
-		if(e_code[i][4] <= '9' && e_code[i][4] >= '0')
-		{
-			for(j = 4; j < e_code[i].size(); j++)
-			{
-				if(e_code[i][j] <= '9' && e_code[i][j] >= '0')
-				l = l * 10 + (e_code[i][j] - '0');
-				else
-				break;
-			}
-		}
-		var_location[k] = -1;
-		if(l == 0)
-		{
-			t_code[t_code_num].type = 17;
-			t_code[t_code_num].arg1 = k;
-			t_code[t_code_num].arg2 = 0;
-			t_code[t_code_num].Code = "v" + to_string(k) + " = 0";
-		}
-		else
-		{
-			var_location[k] = -2;
-			t_code[t_code_num].type = 18;
-			t_code[t_code_num].arg1 = k;
-			t_code[t_code_num].arg2 = l;
-			t_code[t_code_num].Code = "v" + to_string(k) + " = malloc " + to_string(l);
-		}
-		t_code_num++;
-	}
-}
-int E_func(int st)
-{
-	int i, j, k, kk = 0, l;
-	int p_num = 0;
-	string Name;
-	for(i = st; i < e_code_num; i++)
-	{
-		if(e_code[i][0] == 'f')
-		kk = 0;
-		else if(e_code[i][0] == 'v')
-		{
+			if(e_code[i][0] != 'v')
+			return i;
 			j = 0;
 			while(j < e_code[i].size() && e_code[i][j] != 'T')
 			j++;
 			k = 0;
 			j++;
-			while(j < e_code[i].size() && e_code[i][j] >= '0' && e_code[i][j] <= '9')
+			while(j < e_code[i].size())
 			{
 				k = k * 10 + (e_code[i][j] - '0');
 				j++;
@@ -3066,427 +3018,129 @@ int E_func(int st)
 					break;
 				}
 			}
-			var_location[k] = kk;
+			var_location[k] = -1;
 			if(l == 0)
-			kk++;
+			{
+				t_code[t_code_num].type = 17;
+				t_code[t_code_num].arg1 = k;
+				t_code[t_code_num].arg2 = 0;
+				t_code[t_code_num].Code = "v" + to_string(k) + " = 0";
+			}
 			else
 			{
-				kk += (l / 4);
-				is_arr[k] = 1;
+				var_location[k] = -2;
+				t_code[t_code_num].type = 18;
+				t_code[t_code_num].arg1 = k;
+				t_code[t_code_num].arg2 = l;
+				t_code[t_code_num].Code = "v" + to_string(k) + " = malloc " + to_string(l);
 			}
+			t_code_num++;
 		}
-		else
-		break;
 	}
-	i = st;
-	for(j = 2; j < e_code[i].size(); j++)
+	int E_func(int st)
 	{
-		if(!((e_code[i][j] <= '9' && e_code[i][j] >= '0') || (e_code[i][j] <= 'z' && e_code[i][j] >= 'a') || (e_code[i][j] <= 'Z' && e_code[i][j] >= 'A') || e_code[i][j] == '_'))
-		break;
-		Name += e_code[i][j];
-	}
-	while(j < e_code[i].size() && e_code[i][j] != '[')
-	j++;
-	j++;
-	k = 0;
-	while(j < e_code[i].size() && e_code[i][j] <= '9' && e_code[i][j] >= '0')
-	{
-		k = k * 10 + (e_code[i][j] - '0');
+		int i, j, k, kk = 0, l;
+		int p_num = 0;
+		int STK = 0;
+		string Name;
+		for(i = st; i < e_code_num; i++)
+		{
+			if(e_code[i][0] == 'f')
+			kk = 0;
+			else if(e_code[i][0] == 'v')
+			{
+				j = 0;
+				while(j < e_code[i].size() && e_code[i][j] != 'T')
+				j++;
+				k = 0;
+				j++;
+				while(j < e_code[i].size() && e_code[i][j] >= '0' && e_code[i][j] <= '9')
+				{
+					k = k * 10 + (e_code[i][j] - '0');
+					j++;
+				}
+				l = 0;
+				if(e_code[i][4] <= '9' && e_code[i][4] >= '0')
+				{
+					for(j = 4; j < e_code[i].size(); j++)
+					{
+						if(e_code[i][j] <= '9' && e_code[i][j] >= '0')
+						l = l * 10 + (e_code[i][j] - '0');
+						else
+						break;
+					}
+				}
+				var_location[k] = kk;
+				if(l == 0)
+				kk++;
+				else
+				{
+					kk += (l / 4);
+					is_arr[k] = 1;
+				}
+			}
+			else
+			break;
+		}
+		i = st;
+		for(j = 2; j < e_code[i].size(); j++)
+		{
+			if(!((e_code[i][j] <= '9' && e_code[i][j] >= '0') || (e_code[i][j] <= 'z' && e_code[i][j] >= 'a') || (e_code[i][j] <= 'Z' && e_code[i][j] >= 'A') || e_code[i][j] == '_'))
+			break;
+			Name += e_code[i][j];
+		}
+		while(j < e_code[i].size() && e_code[i][j] != '[')
 		j++;
-	}
-	t_code[t_code_num].type = 19; // func start
-	t_code[t_code_num].arg1 = k;
-	t_code[t_code_num].arg2 = kk + k;
-	t_code[t_code_num].op = Name;
-	t_code[t_code_num].Code = "f_" + Name + " [" + to_string(k) + "] [" + to_string(kk + k) + "]";
-	t_code_num++;
-	for(j = 0; j < k; j++) // save args
-	{
-		t_code[t_code_num].type = 12;
-		t_code[t_code_num].arg1 = j;
-		t_code[t_code_num].arg2 = kk + j;
-		t_code[t_code_num].Code = "store a" + to_string(j) + " " + to_string(j + kk);
+		j++;
+		k = 0;
+		while(j < e_code[i].size() && e_code[i][j] <= '9' && e_code[i][j] >= '0')
+		{
+			k = k * 10 + (e_code[i][j] - '0');
+			j++;
+		}
+		STK = ((kk + k) / 4 + 1) * 16;
+		t_code[t_code_num].type = 19; // func start
+		t_code[t_code_num].arg1 = k;
+		t_code[t_code_num].arg2 = kk + k;
+		t_code[t_code_num].arg3 = STK;
+		t_code[t_code_num].op = Name;
+		t_code[t_code_num].Code = "f_" + Name + " [" + to_string(k) + "] [" + to_string(kk + k) + "]";
 		t_code_num++;
-	}
-	for(i = i + 1; i < e_code_num; i++)
-	{
-		if(e_code[i][0] == 'e') // end
+		for(j = 0; j < k; j++) // save args
 		{
-			Name.clear();
-			for(j = 3; j < e_code[i].size(); j++)
-			{
-				if(e_code[i][j] == '_')
-				break;
-			}
-			for(j = j + 1; j < e_code[i].size(); j++)
-			{
-				if(!((e_code[i][j] <= '9' && e_code[i][j] >= '0') || (e_code[i][j] <= 'z' && e_code[i][j] >= 'a') || (e_code[i][j] <= 'Z' && e_code[i][j] >= 'A') || e_code[i][j] == '_'))
-				break;
-				Name += e_code[i][j];
-			}
-			t_code[t_code_num].type = 20; // func end
-			t_code[t_code_num].op = Name;
-			t_code[t_code_num].Code = "end f_" + Name;
-			t_code_num++;
-			return i;
-		}
-		else if(e_code[i][0] == 'c') // call
-		{
-			p_num = 0;
-			Name.clear();
-			for(j = 4; j < e_code[i].size(); j++)
-			{
-				if(e_code[i][j] == '_')
-				break;
-			}
-			for(j = j + 1; j < e_code[i].size(); j++)
-			{
-				if(!((e_code[i][j] <= '9' && e_code[i][j] >= '0') || (e_code[i][j] <= 'z' && e_code[i][j] >= 'a') || (e_code[i][j] <= 'Z' && e_code[i][j] >= 'A') || e_code[i][j] == '_'))
-				break;
-				Name += e_code[i][j];
-			}
-			t_code[t_code_num].type = 10;
-			t_code[t_code_num].op = Name;
-			t_code[t_code_num].Code = "call f_" + Name;
+			t_code[t_code_num].type = 12;
+			t_code[t_code_num].arg1 = j;
+			t_code[t_code_num].arg2 = kk + j;
+			t_code[t_code_num].Code = "store a" + to_string(j) + " " + to_string(j + kk);
 			t_code_num++;
 		}
-		else if(e_code[i][0] == 'r') // return
+		for(i = i + 1; i < e_code_num; i++)
 		{
-			for(j = 4; j < e_code[i].size(); j++)
+			if(e_code[i][0] == 'e') // end
 			{
-				if(e_code[i][j] == 'T')
-				break;
-			}
-			if(j == e_code[i].size())
-			{
-				t_code[t_code_num].type = 11;
-				t_code[t_code_num].Code = "return";
-				t_code_num++;
-			}
-			else
-			{
-				k = 0;
+				Name.clear();
+				for(j = 3; j < e_code[i].size(); j++)
+				{
+					if(e_code[i][j] == '_')
+					break;
+				}
 				for(j = j + 1; j < e_code[i].size(); j++)
 				{
-					if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+					if(!((e_code[i][j] <= '9' && e_code[i][j] >= '0') || (e_code[i][j] <= 'z' && e_code[i][j] >= 'a') || (e_code[i][j] <= 'Z' && e_code[i][j] >= 'A') || e_code[i][j] == '_'))
 					break;
-					k = k * 10 + (e_code[i][j] - '0');
+					Name += e_code[i][j];
 				}
-				if(var_location[k] <= -1) // global
-				{
-					t_code[t_code_num].type = 14;
-					t_code[t_code_num].arg1 = k;
-					t_code[t_code_num].arg2 = 0;
-					t_code[t_code_num].Code = "load v" + to_string(k) + " a0";
-					t_code_num++;
-				}
-				else
-				{
-					if(is_arr[k] == 0)
-					{
-						t_code[t_code_num].type = 13;
-						t_code[t_code_num].arg1 = var_location[k];
-						t_code[t_code_num].arg2 = 0;
-						t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " a0";
-						t_code_num++;
-					}
-					else
-					{
-						t_code[t_code_num].type = 15;
-						t_code[t_code_num].arg1 = var_location[k];
-						t_code[t_code_num].arg2 = 0;
-						t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " a0";
-						t_code_num++;
-					}
-				}
-				t_code[t_code_num].type = 11;
-				t_code[t_code_num].Code = "return";
+				t_code[t_code_num].type = 20; // func end
+				t_code[t_code_num].op = Name;
+				t_code[t_code_num].Code = "end f_" + Name;
 				t_code_num++;
+				return i;
 			}
-		}
-		else if(e_code[i][0] == 'i') // if
-		{
-			Name.clear();
-			for(j = 2; j < e_code[i].size(); j++)
-			if(((e_code[i][j] <= '9' && e_code[i][j] >= '0') || (e_code[i][j] <= 'z' && e_code[i][j] >= 'a') || (e_code[i][j] <= 'Z' && e_code[i][j] >= 'A') || e_code[i][j] == '_'))
-			break;
-			if(e_code[i][j] == 'T')
-			{
-				k = 0;
-				for(j = j + 1; j < e_code[i].size(); j++)
-				{
-					if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-					break;
-					k = k * 10 + (e_code[i][j] - '0');
-				}
-				if(var_location[k] <= -1) // global
-				{
-					t_code[t_code_num].type = 14;
-					t_code[t_code_num].arg1 = k;
-					t_code[t_code_num].arg2 = 8;
-					t_code[t_code_num].Code = "load v" + to_string(k) + " t0";
-					t_code_num++;
-				}
-				else
-				{
-					t_code[t_code_num].type = 13;
-					t_code[t_code_num].arg1 = var_location[k];
-					t_code[t_code_num].arg2 = 8;
-					t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " t0";
-					t_code_num++;
-				}
-			}
-			else if(e_code[i][j] <= '9' && e_code[i][j] >= '0')
-			{
-				k = 0;
-				for(; j < e_code[i].size(); j++)
-				{
-					if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-					break;
-					k = k * 10 + (e_code[i][j] - '0');
-				}
-				t_code[t_code_num].type = 4;
-				t_code[t_code_num].arg1 = 8;
-				t_code[t_code_num].arg2 = k;
-				t_code[t_code_num].Code = "t0 = " + to_string(k);
-				t_code_num++;
-			}
-			else if(e_code[i][j] == 'p')
-			{
-				k = 0;
-				for(j = j + 1; j < e_code[i].size(); j++)
-				{
-					if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-					break;
-					k = k * 10 + (e_code[i][j] - '0');
-				}
-				t_code[t_code_num].type = 13;
-				t_code[t_code_num].arg1 = k + kk;
-				t_code[t_code_num].arg2 = 8;
-				t_code[t_code_num].Code = "load " + to_string(k + kk) + " t0";
-				t_code_num++;
-			}
-			else
-			cout << "error occured in if arg1" << endl;
-			while(j < e_code[i].size() && e_code[i][j] == ' ')
-			j++;
-			if(e_code[i][j] == '!')
-			{
-				if(e_code[i][j+1] == '=')
-				Name += "!=";
-				else
-				cout << "error occured in if !=" << endl;
-				j += 2;
-			}
-			else if(e_code[i][j] == '=')
-			{
-				if(e_code[i][j+1] == '=')
-				Name += "==";
-				else
-				cout << "error occured in if ==" << endl;
-				j += 2;
-			}
-			else if(e_code[i][j] == '<')
-			{
-				if(e_code[i][j+1] == '=')
-				{
-					Name += "<=";
-					j += 2;
-				}
-				else
-				{
-					Name += "<";
-					j++;
-				}
-			}
-			else if(e_code[i][j] == '>')
-			{
-				if(e_code[i][j+1] == '=')
-				{
-					Name += ">=";
-					j += 2;
-				}
-				else
-				{
-					Name += ">";
-					j++;
-				}
-			}
-			else
-			cout << "error occured in if: illegal logic op" << endl;
-			for(; j < e_code[i].size(); j++)
-			if(((e_code[i][j] <= '9' && e_code[i][j] >= '0') || (e_code[i][j] <= 'z' && e_code[i][j] >= 'a') || (e_code[i][j] <= 'Z' && e_code[i][j] >= 'A') || e_code[i][j] == '_'))
-			break;
-			if(e_code[i][j] == 'T')
-			{
-				k = 0;
-				for(j = j + 1; j < e_code[i].size(); j++)
-				{
-					if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-					break;
-					k = k * 10 + (e_code[i][j] - '0');
-				}
-				if(var_location[k] <= -1) // global
-				{
-					t_code[t_code_num].type = 14;
-					t_code[t_code_num].arg1 = k;
-					t_code[t_code_num].arg2 = 9;
-					t_code[t_code_num].Code = "load v" + to_string(k) + " t1";
-					t_code_num++;
-				}
-				else
-				{
-					t_code[t_code_num].type = 13;
-					t_code[t_code_num].arg1 = var_location[k];
-					t_code[t_code_num].arg2 = 9;
-					t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " t1";
-					t_code_num++;
-				}
-			}
-			else if(e_code[i][j] <= '9' && e_code[i][j] >= '0')
-			{
-				k = 0;
-				for(; j < e_code[i].size(); j++)
-				{
-					if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-					break;
-					k = k * 10 + (e_code[i][j] - '0');
-				}
-				t_code[t_code_num].type = 4;
-				t_code[t_code_num].arg1 = 9;
-				t_code[t_code_num].arg2 = k;
-				t_code[t_code_num].Code = "t1 = " + to_string(k);
-				t_code_num++;
-			}
-			else if(e_code[i][j] == 'p')
-			{
-				k = 0;
-				for(j = j + 1; j < e_code[i].size(); j++)
-				{
-					if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-					break;
-					k = k * 10 + (e_code[i][j] - '0');
-				}
-				t_code[t_code_num].type = 13;
-				t_code[t_code_num].arg1 = k + kk;
-				t_code[t_code_num].arg2 = 9;
-				t_code[t_code_num].Code = "load " + to_string(k + kk) + " t1";
-				t_code_num++;
-			}
-			else
-			cout << "error occured in if arg2" << endl;
-			while(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-			j++;
-			k = 0;
-			for(; j < e_code[i].size(); j++)
-			{
-				if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-				break;
-				k = k * 10 + (e_code[i][j] - '0');
-			}
-			t_code[t_code_num].type = 7;
-			t_code[t_code_num].arg1 = 8;
-			t_code[t_code_num].arg2 = 9;
-			t_code[t_code_num].arg3 = k;
-			t_code[t_code_num].op = Name;
-			t_code[t_code_num].Code = "if t0 " + Name + " t1 goto l" + to_string(k);
-			t_code_num++;
-		}
-		else if(e_code[i][0] == 'l') // label
-		{
-			j = 0;
-			while(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-			j++;
-			k = 0;
-			for(; j < e_code[i].size(); j++)
-			{
-				if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-				break;
-				k = k * 10 + (e_code[i][j] - '0');
-			}
-			t_code[t_code_num].type = 9;
-			t_code[t_code_num].arg1 = k;
-			t_code[t_code_num].Code = "l" + to_string(k) + ":";
-			t_code_num++;
-		}
-		else if(e_code[i][0] == 'g') // goto
-		{
-			j = 0;
-			while(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-			j++;
-			k = 0;
-			for(; j < e_code[i].size(); j++)
-			{
-				if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-				break;
-				k = k * 10 + (e_code[i][j] - '0');
-			}
-			t_code[t_code_num].type = 8;
-			t_code[t_code_num].arg1 = k;
-			t_code[t_code_num].Code = "goto l" + to_string(k);
-			t_code_num++;
-		}
-		else if(e_code[i][0] == 'p' && e_code[i][1] == 'a') // param
-		{
-			for(j = 5; j < e_code[i].size(); j++)
-			if(((e_code[i][j] <= '9' && e_code[i][j] >= '0') || (e_code[i][j] <= 'z' && e_code[i][j] >= 'a') || (e_code[i][j] <= 'Z' && e_code[i][j] >= 'A') || e_code[i][j] == '_'))
-			break;
-			if(e_code[i][j] == 'T')
-			{
-				k = 0;
-				for(j = j + 1; j < e_code[i].size(); j++)
-				{
-					if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-					break;
-					k = k * 10 + (e_code[i][j] - '0');
-				}
-				if(var_location[k] == -1) // global
-				{
-					t_code[t_code_num].type = 14;
-					t_code[t_code_num].arg1 = k;
-					t_code[t_code_num].arg2 = p_num;
-					t_code[t_code_num].Code = "load v" + to_string(k) + " a" + to_string(p_num);
-					t_code_num++;
-				}
-				else if(var_location[k] == -2) // global
-				{
-					t_code[t_code_num].type = 16;
-					t_code[t_code_num].arg1 = k;
-					t_code[t_code_num].arg2 = p_num;
-					t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " a" + to_string(p_num);
-					t_code_num++;
-				}
-				else if(is_arr[k] == 0)
-				{
-					t_code[t_code_num].type = 13;
-					t_code[t_code_num].arg1 = var_location[k];
-					t_code[t_code_num].arg2 = p_num;
-					t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " a" + to_string(p_num);
-					t_code_num++;
-				}
-				else
-				{
-					t_code[t_code_num].type = 15;
-					t_code[t_code_num].arg1 = var_location[k];
-					t_code[t_code_num].arg2 = p_num;
-					t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " a" + to_string(p_num);
-					t_code_num++;
-				}
-				p_num++;
-			}
-			else
-			cout << "error occured in param" << endl;
-		}
-		else if(e_code[i][0] == 'p' || e_code[i][0] == 'T') // Exp
-		{
-			for(j = 0; j < e_code[i].size(); j++)
-			if(e_code[i][j] == 'c')
-			break;
-			if(j < e_code[i].size()) // var = call f_; 6 lines
+			else if(e_code[i][0] == 'c') // call
 			{
 				p_num = 0;
 				Name.clear();
-				for(; j < e_code[i].size(); j++)
+				for(j = 4; j < e_code[i].size(); j++)
 				{
 					if(e_code[i][j] == '_')
 					break;
@@ -3501,8 +3155,22 @@ int E_func(int st)
 				t_code[t_code_num].op = Name;
 				t_code[t_code_num].Code = "call f_" + Name;
 				t_code_num++;
-				j = 0;
-				if(e_code[i][j] == 'T') // 5 lines
+			}
+			else if(e_code[i][0] == 'r') // return
+			{
+				for(j = 4; j < e_code[i].size(); j++)
+				{
+					if(e_code[i][j] == 'T')
+					break;
+				}
+				if(j == e_code[i].size())
+				{
+					t_code[t_code_num].type = 11;
+					t_code[t_code_num].arg1 = STK;
+					t_code[t_code_num].Code = "return";
+					t_code_num++;
+				}
+				else
 				{
 					k = 0;
 					for(j = j + 1; j < e_code[i].size(); j++)
@@ -3511,104 +3179,85 @@ int E_func(int st)
 						break;
 						k = k * 10 + (e_code[i][j] - '0');
 					}
-					if(e_code[i][j] == '[') // 5 lines
+					if(var_location[k] <= -1) // global
 					{
-						l = 0;
-						j++;
-						if(e_code[i][j] == 'T')
-						{
-							for(j = j + 1; j < e_code[i].size(); j++)
-							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								l = l * 10 + (e_code[i][j] - '0');
-							}
-							if(var_location[l] <= -1) // global
-							{
-								t_code[t_code_num].type = 14;
-								t_code[t_code_num].arg1 = l;
-								t_code[t_code_num].arg2 = 9;
-								t_code[t_code_num].Code = "load v" + to_string(l) + " t1";
-								t_code_num++;
-							}
-							else
-							{
-								t_code[t_code_num].type = 13;
-								t_code[t_code_num].arg1 = var_location[l];
-								t_code[t_code_num].arg2 = 9;
-								t_code[t_code_num].Code = "load " + to_string(var_location[l]) + " t1";
-								t_code_num++;
-							}
-						}
-						else
-						{
-							for(; j < e_code[i].size(); j++)
-							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								l = l * 10 + (e_code[i][j] - '0');
-							}
-							t_code[t_code_num].type = 4;
-							t_code[t_code_num].arg1 = 9;
-							t_code[t_code_num].arg2 = l;
-							t_code[t_code_num].Code = "t1 = " + to_string(l);
-							t_code_num++;
-						}
-						if(var_location[k] <= -1) // global
-						{
-							t_code[t_code_num].type = 16;
-							t_code[t_code_num].arg1 = k;
-							t_code[t_code_num].arg2 = 10;
-							t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t2";
-							t_code_num++;
-						}
-						else
-						{
-							t_code[t_code_num].type = 15;
-							t_code[t_code_num].arg1 = var_location[k];
-							t_code[t_code_num].arg2 = 10;
-							t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t2";
-							t_code_num++;
-						}
-						t_code[t_code_num].type = 0;
-						t_code[t_code_num].arg1 = 8;
-						t_code[t_code_num].arg2 = 10;
-						t_code[t_code_num].arg3 = 9;
-						t_code[t_code_num].op += "+";
-						t_code[t_code_num].Code = "t0 = t2 + t1";
-						t_code_num++;
-						t_code[t_code_num].type = 5;
-						t_code[t_code_num].arg1 = 8;
+						t_code[t_code_num].type = 14;
+						t_code[t_code_num].arg1 = k;
 						t_code[t_code_num].arg2 = 0;
-						t_code[t_code_num].arg3 = 0;
-						t_code[t_code_num].Code = "t0[0] = a0";
+						t_code[t_code_num].Code = "load v" + to_string(k) + " a0";
 						t_code_num++;
 					}
 					else
 					{
-						if(var_location[k] <= -1) // global
+						if(is_arr[k] == 0)
 						{
-							t_code[t_code_num].type = 16;
-							t_code[t_code_num].arg1 = k;
-							t_code[t_code_num].arg2 = 10;
-							t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t2";
+							t_code[t_code_num].type = 13;
+							t_code[t_code_num].arg1 = var_location[k];
+							t_code[t_code_num].arg2 = 0;
+							t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " a0";
 							t_code_num++;
 						}
 						else
 						{
 							t_code[t_code_num].type = 15;
 							t_code[t_code_num].arg1 = var_location[k];
-							t_code[t_code_num].arg2 = 10;
-							t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t2";
+							t_code[t_code_num].arg2 = 0;
+							t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " a0";
 							t_code_num++;
 						}
-						t_code[t_code_num].type = 5;
-						t_code[t_code_num].arg1 = 10;
-						t_code[t_code_num].arg2 = 0;
-						t_code[t_code_num].arg3 = 0;
-						t_code[t_code_num].Code = "t2[0] = a0";
+					}
+					t_code[t_code_num].type = 11;
+					t_code[t_code_num].arg1 = STK;
+					t_code[t_code_num].Code = "return";
+					t_code_num++;
+				}
+			}
+			else if(e_code[i][0] == 'i') // if
+			{
+				Name.clear();
+				for(j = 2; j < e_code[i].size(); j++)
+				if(((e_code[i][j] <= '9' && e_code[i][j] >= '0') || (e_code[i][j] <= 'z' && e_code[i][j] >= 'a') || (e_code[i][j] <= 'Z' && e_code[i][j] >= 'A') || e_code[i][j] == '_'))
+				break;
+				if(e_code[i][j] == 'T')
+				{
+					k = 0;
+					for(j = j + 1; j < e_code[i].size(); j++)
+					{
+						if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+						break;
+						k = k * 10 + (e_code[i][j] - '0');
+					}
+					if(var_location[k] <= -1) // global
+					{
+						t_code[t_code_num].type = 14;
+						t_code[t_code_num].arg1 = k;
+						t_code[t_code_num].arg2 = 8;
+						t_code[t_code_num].Code = "load v" + to_string(k) + " t0";
 						t_code_num++;
 					}
+					else
+					{
+						t_code[t_code_num].type = 13;
+						t_code[t_code_num].arg1 = var_location[k];
+						t_code[t_code_num].arg2 = 8;
+						t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " t0";
+						t_code_num++;
+					}
+				}
+				else if(e_code[i][j] <= '9' && e_code[i][j] >= '0')
+				{
+					k = 0;
+					for(; j < e_code[i].size(); j++)
+					{
+						if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+						break;
+						k = k * 10 + (e_code[i][j] - '0');
+					}
+					t_code[t_code_num].type = 4;
+					t_code[t_code_num].arg1 = 8;
+					t_code[t_code_num].arg2 = k;
+					t_code[t_code_num].Code = "t0 = " + to_string(k);
+					t_code_num++;
 				}
 				else if(e_code[i][j] == 'p')
 				{
@@ -3619,255 +3268,891 @@ int E_func(int st)
 						break;
 						k = k * 10 + (e_code[i][j] - '0');
 					}
-					if(e_code[i][j] == '[')
+					t_code[t_code_num].type = 13;
+					t_code[t_code_num].arg1 = k + kk;
+					t_code[t_code_num].arg2 = 8;
+					t_code[t_code_num].Code = "load " + to_string(k + kk) + " t0";
+					t_code_num++;
+				}
+				else
+				cout << "error occured in if arg1" << endl;
+				while(j < e_code[i].size() && e_code[i][j] == ' ')
+				j++;
+				if(e_code[i][j] == '!')
+				{
+					if(e_code[i][j+1] == '=')
+					Name += "!=";
+					else
+					cout << "error occured in if !=" << endl;
+					j += 2;
+				}
+				else if(e_code[i][j] == '=')
+				{
+					if(e_code[i][j+1] == '=')
+					Name += "==";
+					else
+					cout << "error occured in if ==" << endl;
+					j += 2;
+				}
+				else if(e_code[i][j] == '<')
+				{
+					if(e_code[i][j+1] == '=')
 					{
-						l = 0;
+						Name += "<=";
+						j += 2;
+					}
+					else
+					{
+						Name += "<";
 						j++;
-						if(e_code[i][j] == 'T')
-						{
-							for(j = j + 1; j < e_code[i].size(); j++)
-							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								l = l * 10 + (e_code[i][j] - '0');
-							}
-							if(var_location[l] <= -1) // global
-							{
-								t_code[t_code_num].type = 14;
-								t_code[t_code_num].arg1 = l;
-								t_code[t_code_num].arg2 = 9;
-								t_code[t_code_num].Code = "load v" + to_string(l) + " t1";
-								t_code_num++;
-							}
-							else
-							{
-								t_code[t_code_num].type = 13;
-								t_code[t_code_num].arg1 = var_location[l];
-								t_code[t_code_num].arg2 = 9;
-								t_code[t_code_num].Code = "load " + to_string(var_location[l]) + " t1";
-								t_code_num++;
-							}
-						}
-						else
-						{
-							for(; j < e_code[i].size(); j++)
-							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								l = l * 10 + (e_code[i][j] - '0');
-							}
-							t_code[t_code_num].type = 4;
-							t_code[t_code_num].arg1 = 9;
-							t_code[t_code_num].arg2 = l;
-							t_code[t_code_num].Code = "t1 = " + to_string(l);
-							t_code_num++;
-						}
-						t_code[t_code_num].type = 13;
-						t_code[t_code_num].arg1 = k + kk;
-						t_code[t_code_num].arg2 = 12;
-						t_code[t_code_num].Code = "load " + to_string(k + kk) + " t4";
-						t_code_num++;
-						t_code[t_code_num].type = 0;
-						t_code[t_code_num].arg1 = 8;
-						t_code[t_code_num].arg2 = 12;
-						t_code[t_code_num].arg3 = 9;
-						t_code[t_code_num].op += "+";
-						t_code[t_code_num].Code = "t0 = t4 + t1";
-						t_code_num++;
-						t_code[t_code_num].type = 5;
-						t_code[t_code_num].arg1 = 8;
-						t_code[t_code_num].arg2 = 0;
-						t_code[t_code_num].arg3 = 0;
-						t_code[t_code_num].Code = "t0[0] = a0";
+					}
+				}
+				else if(e_code[i][j] == '>')
+				{
+					if(e_code[i][j+1] == '=')
+					{
+						Name += ">=";
+						j += 2;
+					}
+					else
+					{
+						Name += ">";
+						j++;
+					}
+				}
+				else
+				cout << "error occured in if: illegal logic op" << endl;
+				for(; j < e_code[i].size(); j++)
+				if(((e_code[i][j] <= '9' && e_code[i][j] >= '0') || (e_code[i][j] <= 'z' && e_code[i][j] >= 'a') || (e_code[i][j] <= 'Z' && e_code[i][j] >= 'A') || e_code[i][j] == '_'))
+				break;
+				if(e_code[i][j] == 'T')
+				{
+					k = 0;
+					for(j = j + 1; j < e_code[i].size(); j++)
+					{
+						if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+						break;
+						k = k * 10 + (e_code[i][j] - '0');
+					}
+					if(var_location[k] <= -1) // global
+					{
+						t_code[t_code_num].type = 14;
+						t_code[t_code_num].arg1 = k;
+						t_code[t_code_num].arg2 = 9;
+						t_code[t_code_num].Code = "load v" + to_string(k) + " t1";
 						t_code_num++;
 					}
 					else
 					{
-						t_code[t_code_num].type = 3;
-						t_code[t_code_num].arg1 = k + 15;
-						t_code[t_code_num].arg2 = 0;
-						t_code[t_code_num].Code = "s" + to_string(k) + " = a0";
+						t_code[t_code_num].type = 13;
+						t_code[t_code_num].arg1 = var_location[k];
+						t_code[t_code_num].arg2 = 9;
+						t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " t1";
 						t_code_num++;
 					}
 				}
+				else if(e_code[i][j] <= '9' && e_code[i][j] >= '0')
+				{
+					k = 0;
+					for(; j < e_code[i].size(); j++)
+					{
+						if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+						break;
+						k = k * 10 + (e_code[i][j] - '0');
+					}
+					t_code[t_code_num].type = 4;
+					t_code[t_code_num].arg1 = 9;
+					t_code[t_code_num].arg2 = k;
+					t_code[t_code_num].Code = "t1 = " + to_string(k);
+					t_code_num++;
+				}
+				else if(e_code[i][j] == 'p')
+				{
+					k = 0;
+					for(j = j + 1; j < e_code[i].size(); j++)
+					{
+						if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+						break;
+						k = k * 10 + (e_code[i][j] - '0');
+					}
+					t_code[t_code_num].type = 13;
+					t_code[t_code_num].arg1 = k + kk;
+					t_code[t_code_num].arg2 = 9;
+					t_code[t_code_num].Code = "load " + to_string(k + kk) + " t1";
+					t_code_num++;
+				}
+				else
+				cout << "error occured in if arg2" << endl;
+				while(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+				j++;
+				k = 0;
+				for(; j < e_code[i].size(); j++)
+				{
+					if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+					break;
+					k = k * 10 + (e_code[i][j] - '0');
+				}
+				t_code[t_code_num].type = 7;
+				t_code[t_code_num].arg1 = 8;
+				t_code[t_code_num].arg2 = 9;
+				t_code[t_code_num].arg3 = k;
+				t_code[t_code_num].op = Name;
+				t_code[t_code_num].Code = "if t0 " + Name + " t1 goto l" + to_string(k);
+				t_code_num++;
 			}
-			else
+			else if(e_code[i][0] == 'l') // label
+			{
+				j = 0;
+				while(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+				j++;
+				k = 0;
+				for(; j < e_code[i].size(); j++)
+				{
+					if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+					break;
+					k = k * 10 + (e_code[i][j] - '0');
+				}
+				t_code[t_code_num].type = 9;
+				t_code[t_code_num].arg1 = k;
+				t_code[t_code_num].Code = "l" + to_string(k) + ":";
+				t_code_num++;
+			}
+			else if(e_code[i][0] == 'g') // goto
+			{
+				j = 0;
+				while(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+				j++;
+				k = 0;
+				for(; j < e_code[i].size(); j++)
+				{
+					if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+					break;
+					k = k * 10 + (e_code[i][j] - '0');
+				}
+				t_code[t_code_num].type = 8;
+				t_code[t_code_num].arg1 = k;
+				t_code[t_code_num].Code = "goto l" + to_string(k);
+				t_code_num++;
+			}
+			else if(e_code[i][0] == 'p' && e_code[i][1] == 'a') // param
+			{
+				for(j = 5; j < e_code[i].size(); j++)
+				if(((e_code[i][j] <= '9' && e_code[i][j] >= '0') || (e_code[i][j] <= 'z' && e_code[i][j] >= 'a') || (e_code[i][j] <= 'Z' && e_code[i][j] >= 'A') || e_code[i][j] == '_'))
+				break;
+				if(e_code[i][j] == 'T')
+				{
+					k = 0;
+					for(j = j + 1; j < e_code[i].size(); j++)
+					{
+						if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+						break;
+						k = k * 10 + (e_code[i][j] - '0');
+					}
+					if(var_location[k] == -1) // global
+					{
+						t_code[t_code_num].type = 14;
+						t_code[t_code_num].arg1 = k;
+						t_code[t_code_num].arg2 = p_num;
+						t_code[t_code_num].Code = "load v" + to_string(k) + " a" + to_string(p_num);
+						t_code_num++;
+					}
+					else if(var_location[k] == -2) // global
+					{
+						t_code[t_code_num].type = 16;
+						t_code[t_code_num].arg1 = k;
+						t_code[t_code_num].arg2 = p_num;
+						t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " a" + to_string(p_num);
+						t_code_num++;
+					}
+					else if(is_arr[k] == 0)
+					{
+						t_code[t_code_num].type = 13;
+						t_code[t_code_num].arg1 = var_location[k];
+						t_code[t_code_num].arg2 = p_num;
+						t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " a" + to_string(p_num);
+						t_code_num++;
+					}
+					else
+					{
+						t_code[t_code_num].type = 15;
+						t_code[t_code_num].arg1 = var_location[k];
+						t_code[t_code_num].arg2 = p_num;
+						t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " a" + to_string(p_num);
+						t_code_num++;
+					}
+					p_num++;
+				}
+				else
+				cout << "error occured in param" << endl;
+			}
+			else if(e_code[i][0] == 'p' || e_code[i][0] == 'T') // Exp
 			{
 				for(j = 0; j < e_code[i].size(); j++)
-				if(e_code[i][j] == '=')
+				if(e_code[i][j] == 'c')
 				break;
-				j++;
-				while(j < e_code[i].size() && e_code[i][j] == ' ')
-				j++;
-				for(k = 0; k < e_code[i].size(); k++)
-				if(e_code[i][k] == '[')
-				break;
-				if(k != e_code[i].size()) // a[x] = b or a = b[x]
+				if(j < e_code[i].size()) // var = call f_; 6 lines
 				{
-					if(k < j) // a[x] = b
+					p_num = 0;
+					Name.clear();
+					for(; j < e_code[i].size(); j++)
 					{
-						j = 0;
-						if(e_code[i][j] == 'T') // 5 lines
+						if(e_code[i][j] == '_')
+						break;
+					}
+					for(j = j + 1; j < e_code[i].size(); j++)
+					{
+						if(!((e_code[i][j] <= '9' && e_code[i][j] >= '0') || (e_code[i][j] <= 'z' && e_code[i][j] >= 'a') || (e_code[i][j] <= 'Z' && e_code[i][j] >= 'A') || e_code[i][j] == '_'))
+						break;
+						Name += e_code[i][j];
+					}
+					t_code[t_code_num].type = 10;
+					t_code[t_code_num].op = Name;
+					t_code[t_code_num].Code = "call f_" + Name;
+					t_code_num++;
+					j = 0;
+					if(e_code[i][j] == 'T') // 5 lines
+					{
+						k = 0;
+						for(j = j + 1; j < e_code[i].size(); j++)
 						{
-							k = 0;
-							for(j = j + 1; j < e_code[i].size(); j++)
+							if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+							break;
+							k = k * 10 + (e_code[i][j] - '0');
+						}
+						if(e_code[i][j] == '[') // 5 lines
+						{
+							l = 0;
+							j++;
+							if(e_code[i][j] == 'T')
 							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][j] - '0');
-							}
-							if(e_code[i][j] == '[') // 5 lines
-							{
-								l = 0;
-								j++;
-								if(e_code[i][j] == 'T')
+								for(j = j + 1; j < e_code[i].size(); j++)
 								{
-									for(j = j + 1; j < e_code[i].size(); j++)
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									l = l * 10 + (e_code[i][j] - '0');
+								}
+								if(var_location[l] <= -1) // global
+								{
+									t_code[t_code_num].type = 14;
+									t_code[t_code_num].arg1 = l;
+									t_code[t_code_num].arg2 = 9;
+									t_code[t_code_num].Code = "load v" + to_string(l) + " t1";
+									t_code_num++;
+								}
+								else
+								{
+									t_code[t_code_num].type = 13;
+									t_code[t_code_num].arg1 = var_location[l];
+									t_code[t_code_num].arg2 = 9;
+									t_code[t_code_num].Code = "load " + to_string(var_location[l]) + " t1";
+									t_code_num++;
+								}
+							}
+							else
+							{
+								for(; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									l = l * 10 + (e_code[i][j] - '0');
+								}
+								t_code[t_code_num].type = 4;
+								t_code[t_code_num].arg1 = 9;
+								t_code[t_code_num].arg2 = l;
+								t_code[t_code_num].Code = "t1 = " + to_string(l);
+								t_code_num++;
+							}
+							if(var_location[k] <= -1) // global
+							{
+								t_code[t_code_num].type = 16;
+								t_code[t_code_num].arg1 = k;
+								t_code[t_code_num].arg2 = 10;
+								t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t2";
+								t_code_num++;
+							}
+							else
+							{
+								t_code[t_code_num].type = 15;
+								t_code[t_code_num].arg1 = var_location[k];
+								t_code[t_code_num].arg2 = 10;
+								t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t2";
+								t_code_num++;
+							}
+							t_code[t_code_num].type = 0;
+							t_code[t_code_num].arg1 = 8;
+							t_code[t_code_num].arg2 = 10;
+							t_code[t_code_num].arg3 = 9;
+							t_code[t_code_num].op += "+";
+							t_code[t_code_num].Code = "t0 = t2 + t1";
+							t_code_num++;
+							t_code[t_code_num].type = 5;
+							t_code[t_code_num].arg1 = 8;
+							t_code[t_code_num].arg2 = 0;
+							t_code[t_code_num].arg3 = 0;
+							t_code[t_code_num].Code = "t0[0] = a0";
+							t_code_num++;
+						}
+						else
+						{
+							if(var_location[k] <= -1) // global
+							{
+								t_code[t_code_num].type = 16;
+								t_code[t_code_num].arg1 = k;
+								t_code[t_code_num].arg2 = 10;
+								t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t2";
+								t_code_num++;
+							}
+							else
+							{
+								t_code[t_code_num].type = 15;
+								t_code[t_code_num].arg1 = var_location[k];
+								t_code[t_code_num].arg2 = 10;
+								t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t2";
+								t_code_num++;
+							}
+							t_code[t_code_num].type = 5;
+							t_code[t_code_num].arg1 = 10;
+							t_code[t_code_num].arg2 = 0;
+							t_code[t_code_num].arg3 = 0;
+							t_code[t_code_num].Code = "t2[0] = a0";
+							t_code_num++;
+						}
+					}
+					else if(e_code[i][j] == 'p')
+					{
+						k = 0;
+						for(j = j + 1; j < e_code[i].size(); j++)
+						{
+							if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+							break;
+							k = k * 10 + (e_code[i][j] - '0');
+						}
+						if(e_code[i][j] == '[')
+						{
+							l = 0;
+							j++;
+							if(e_code[i][j] == 'T')
+							{
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									l = l * 10 + (e_code[i][j] - '0');
+								}
+								if(var_location[l] <= -1) // global
+								{
+									t_code[t_code_num].type = 14;
+									t_code[t_code_num].arg1 = l;
+									t_code[t_code_num].arg2 = 9;
+									t_code[t_code_num].Code = "load v" + to_string(l) + " t1";
+									t_code_num++;
+								}
+								else
+								{
+									t_code[t_code_num].type = 13;
+									t_code[t_code_num].arg1 = var_location[l];
+									t_code[t_code_num].arg2 = 9;
+									t_code[t_code_num].Code = "load " + to_string(var_location[l]) + " t1";
+									t_code_num++;
+								}
+							}
+							else
+							{
+								for(; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									l = l * 10 + (e_code[i][j] - '0');
+								}
+								t_code[t_code_num].type = 4;
+								t_code[t_code_num].arg1 = 9;
+								t_code[t_code_num].arg2 = l;
+								t_code[t_code_num].Code = "t1 = " + to_string(l);
+								t_code_num++;
+							}
+							t_code[t_code_num].type = 13;
+							t_code[t_code_num].arg1 = k + kk;
+							t_code[t_code_num].arg2 = 12;
+							t_code[t_code_num].Code = "load " + to_string(k + kk) + " t4";
+							t_code_num++;
+							t_code[t_code_num].type = 0;
+							t_code[t_code_num].arg1 = 8;
+							t_code[t_code_num].arg2 = 12;
+							t_code[t_code_num].arg3 = 9;
+							t_code[t_code_num].op += "+";
+							t_code[t_code_num].Code = "t0 = t4 + t1";
+							t_code_num++;
+							t_code[t_code_num].type = 5;
+							t_code[t_code_num].arg1 = 8;
+							t_code[t_code_num].arg2 = 0;
+							t_code[t_code_num].arg3 = 0;
+							t_code[t_code_num].Code = "t0[0] = a0";
+							t_code_num++;
+						}
+						else
+						{
+							t_code[t_code_num].type = 3;
+							t_code[t_code_num].arg1 = k + 15;
+							t_code[t_code_num].arg2 = 0;
+							t_code[t_code_num].Code = "s" + to_string(k) + " = a0";
+							t_code_num++;
+						}
+					}
+				}
+				else
+				{
+					for(j = 0; j < e_code[i].size(); j++)
+					if(e_code[i][j] == '=')
+					break;
+					j++;
+					while(j < e_code[i].size() && e_code[i][j] == ' ')
+					j++;
+					for(k = 0; k < e_code[i].size(); k++)
+					if(e_code[i][k] == '[')
+					break;
+					if(k != e_code[i].size()) // a[x] = b or a = b[x]
+					{
+						if(k < j) // a[x] = b
+						{
+							j = 0;
+							if(e_code[i][j] == 'T') // 5 lines
+							{
+								k = 0;
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
+								if(e_code[i][j] == '[') // 5 lines
+								{
+									l = 0;
+									j++;
+									if(e_code[i][j] == 'T')
 									{
-										if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-										break;
-										l = l * 10 + (e_code[i][j] - '0');
+										for(j = j + 1; j < e_code[i].size(); j++)
+										{
+											if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+											break;
+											l = l * 10 + (e_code[i][j] - '0');
+										}
+										if(var_location[l] <= -1) // global
+										{
+											t_code[t_code_num].type = 14;
+											t_code[t_code_num].arg1 = l;
+											t_code[t_code_num].arg2 = 9;
+											t_code[t_code_num].Code = "load v" + to_string(l) + " t1";
+											t_code_num++;
+										}
+										else
+										{
+											t_code[t_code_num].type = 13;
+											t_code[t_code_num].arg1 = var_location[l];
+											t_code[t_code_num].arg2 = 9;
+											t_code[t_code_num].Code = "load " + to_string(var_location[l]) + " t1";
+											t_code_num++;
+										}
 									}
-									if(var_location[l] <= -1) // global
+									else
 									{
-										t_code[t_code_num].type = 14;
-										t_code[t_code_num].arg1 = l;
-										t_code[t_code_num].arg2 = 9;
-										t_code[t_code_num].Code = "load v" + to_string(l) + " t1";
+										for(; j < e_code[i].size(); j++)
+										{
+											if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+											break;
+											l = l * 10 + (e_code[i][j] - '0');
+										}
+										t_code[t_code_num].type = 4;
+										t_code[t_code_num].arg1 = 9;
+										t_code[t_code_num].arg2 = l;
+										t_code[t_code_num].Code = "t1 = " + to_string(l);
+										t_code_num++;
+									}
+									if(var_location[k] <= -1) // global
+									{
+										t_code[t_code_num].type = 16;
+										t_code[t_code_num].arg1 = k;
+										t_code[t_code_num].arg2 = 10;
+										t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t2";
 										t_code_num++;
 									}
 									else
 									{
-										t_code[t_code_num].type = 13;
-										t_code[t_code_num].arg1 = var_location[l];
-										t_code[t_code_num].arg2 = 9;
-										t_code[t_code_num].Code = "load " + to_string(var_location[l]) + " t1";
+										t_code[t_code_num].type = 15;
+										t_code[t_code_num].arg1 = var_location[k];
+										t_code[t_code_num].arg2 = 10;
+										t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t2";
 										t_code_num++;
 									}
+									t_code[t_code_num].type = 0;
+									t_code[t_code_num].arg1 = 8;
+									t_code[t_code_num].arg2 = 10;
+									t_code[t_code_num].arg3 = 9;
+									t_code[t_code_num].op += "+";
+									t_code[t_code_num].Code = "t0 = t2 + t1";
+									t_code_num++;
+								}
+								else
+								cout << "error occured in a[x] = b" << endl;
+							}
+							else if(e_code[i][j] == 'p')
+							{
+								k = 0;
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
+								if(e_code[i][j] == '[')
+								{
+									l = 0;
+									j++;
+									if(e_code[i][j] == 'T')
+									{
+										for(j = j + 1; j < e_code[i].size(); j++)
+										{
+											if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+											break;
+											l = l * 10 + (e_code[i][j] - '0');
+										}
+										if(var_location[l] <= -1) // global
+										{
+											t_code[t_code_num].type = 14;
+											t_code[t_code_num].arg1 = l;
+											t_code[t_code_num].arg2 = 9;
+											t_code[t_code_num].Code = "load v" + to_string(l) + " t1";
+											t_code_num++;
+										}
+										else
+										{
+											t_code[t_code_num].type = 13;
+											t_code[t_code_num].arg1 = var_location[l];
+											t_code[t_code_num].arg2 = 9;
+											t_code[t_code_num].Code = "load " + to_string(var_location[l]) + " t1";
+											t_code_num++;
+										}
+									}
+									else
+									{
+										for(; j < e_code[i].size(); j++)
+										{
+											if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+											break;
+											l = l * 10 + (e_code[i][j] - '0');
+										}
+										t_code[t_code_num].type = 4;
+										t_code[t_code_num].arg1 = 9;
+										t_code[t_code_num].arg2 = l;
+										t_code[t_code_num].Code = "t1 = " + to_string(l);
+										t_code_num++;
+									}
+									t_code[t_code_num].type = 13;
+									t_code[t_code_num].arg1 = k + kk;
+									t_code[t_code_num].arg2 = 12;
+									t_code[t_code_num].Code = "load " + to_string(k + kk) + " t4";
+									t_code_num++;
+									t_code[t_code_num].type = 0;
+									t_code[t_code_num].arg1 = 8;
+									t_code[t_code_num].arg2 = 12;
+									t_code[t_code_num].arg3 = 9;
+									t_code[t_code_num].op += "+";
+									t_code[t_code_num].Code = "t0 = t4 + t1";
+									t_code_num++;
+								}
+								else
+								cout << "error occured in p[x] = b" << endl;
+							}
+							for(j = 0; j < e_code[i].size(); j++)
+							if(e_code[i][j] == '=')
+							break;
+							j++;
+							while(j < e_code[i].size() && e_code[i][j] == ' ')
+							j++;
+							if(e_code[i][j] == 'T')
+							{
+								k = 0;
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
+								if(var_location[k] <= -1) // global
+								{
+									t_code[t_code_num].type = 14;
+									t_code[t_code_num].arg1 = k;
+									t_code[t_code_num].arg2 = 9;
+									t_code[t_code_num].Code = "load v" + to_string(k) + " t1";
+									t_code_num++;
 								}
 								else
 								{
-									for(; j < e_code[i].size(); j++)
-									{
-										if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-										break;
-										l = l * 10 + (e_code[i][j] - '0');
-									}
-									t_code[t_code_num].type = 4;
-									t_code[t_code_num].arg1 = 9;
-									t_code[t_code_num].arg2 = l;
-									t_code[t_code_num].Code = "t1 = " + to_string(l);
+									t_code[t_code_num].type = 13;
+									t_code[t_code_num].arg1 = var_location[k];
+									t_code[t_code_num].arg2 = 9;
+									t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " t1";
 									t_code_num++;
+								}
+							}
+							else if(e_code[i][j] <= '9' && e_code[i][j] >= '0')
+							{
+								k = 0;
+								for(; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
+								t_code[t_code_num].type = 4;
+								t_code[t_code_num].arg1 = 9;
+								t_code[t_code_num].arg2 = k;
+								t_code[t_code_num].Code = "t1 = " + to_string(k);
+								t_code_num++;
+							}
+							else if(e_code[i][j] == 'p')
+							{
+								k = 0;
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
+								t_code[t_code_num].type = 13;
+								t_code[t_code_num].arg1 = k + kk;
+								t_code[t_code_num].arg2 = 9;
+								t_code[t_code_num].Code = "load " + to_string(k + kk) + " t1";
+								t_code_num++;
+							}
+							else
+							cout << "error occured in a[x] = arg2" << endl;
+							t_code[t_code_num].type = 5;
+							t_code[t_code_num].arg1 = 8;
+							t_code[t_code_num].arg2 = 0;
+							t_code[t_code_num].arg3 = 9;
+							t_code[t_code_num].Code = "t0[0] = t1";
+							t_code_num++;
+						}
+						else// a = b[x]
+						{
+							if(e_code[i][j] == 'T') // 5 lines
+							{
+								k = 0;
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
+								if(e_code[i][j] == '[') // 5 lines
+								{
+									l = 0;
+									j++;
+									if(e_code[i][j] == 'T')
+									{
+										for(j = j + 1; j < e_code[i].size(); j++)
+										{
+											if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+											break;
+											l = l * 10 + (e_code[i][j] - '0');
+										}
+										if(var_location[l] <= -1) // global
+										{
+											t_code[t_code_num].type = 14;
+											t_code[t_code_num].arg1 = l;
+											t_code[t_code_num].arg2 = 9;
+											t_code[t_code_num].Code = "load v" + to_string(l) + " t1";
+											t_code_num++;
+										}
+										else
+										{
+											t_code[t_code_num].type = 13;
+											t_code[t_code_num].arg1 = var_location[l];
+											t_code[t_code_num].arg2 = 9;
+											t_code[t_code_num].Code = "load " + to_string(var_location[l]) + " t1";
+											t_code_num++;
+										}
+									}
+									else
+									{
+										for(; j < e_code[i].size(); j++)
+										{
+											if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+											break;
+											l = l * 10 + (e_code[i][j] - '0');
+										}
+										t_code[t_code_num].type = 4;
+										t_code[t_code_num].arg1 = 9;
+										t_code[t_code_num].arg2 = l;
+										t_code[t_code_num].Code = "t1 = " + to_string(l);
+										t_code_num++;
+									}
+									if(var_location[k] <= -1) // global
+									{
+										t_code[t_code_num].type = 16;
+										t_code[t_code_num].arg1 = k;
+										t_code[t_code_num].arg2 = 10;
+										t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t2";
+										t_code_num++;
+									}
+									else
+									{
+										t_code[t_code_num].type = 15;
+										t_code[t_code_num].arg1 = var_location[k];
+										t_code[t_code_num].arg2 = 10;
+										t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t2";
+										t_code_num++;
+									}
+									t_code[t_code_num].type = 0;
+									t_code[t_code_num].arg1 = 9;
+									t_code[t_code_num].arg2 = 10;
+									t_code[t_code_num].arg3 = 9;
+									t_code[t_code_num].op += "+";
+									t_code[t_code_num].Code = "t1 = t2 + t1";
+									t_code_num++;
+								}
+								else
+								cout << "error occured in b = a[x]" << endl;
+							}
+							else if(e_code[i][j] == 'p')
+							{
+								k = 0;
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
+								if(e_code[i][j] == '[')
+								{
+									l = 0;
+									j++;
+									if(e_code[i][j] == 'T')
+									{
+										for(j = j + 1; j < e_code[i].size(); j++)
+										{
+											if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+											break;
+											l = l * 10 + (e_code[i][j] - '0');
+										}
+										if(var_location[l] <= -1) // global
+										{
+											t_code[t_code_num].type = 14;
+											t_code[t_code_num].arg1 = l;
+											t_code[t_code_num].arg2 = 9;
+											t_code[t_code_num].Code = "load v" + to_string(l) + " t1";
+											t_code_num++;
+										}
+										else
+										{
+											t_code[t_code_num].type = 13;
+											t_code[t_code_num].arg1 = var_location[l];
+											t_code[t_code_num].arg2 = 9;
+											t_code[t_code_num].Code = "load " + to_string(var_location[l]) + " t1";
+											t_code_num++;
+										}
+									}
+									else
+									{
+										for(; j < e_code[i].size(); j++)
+										{
+											if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+											break;
+											l = l * 10 + (e_code[i][j] - '0');
+										}
+										t_code[t_code_num].type = 4;
+										t_code[t_code_num].arg1 = 9;
+										t_code[t_code_num].arg2 = l;
+										t_code[t_code_num].Code = "t1 = " + to_string(l);
+										t_code_num++;
+									}
+									t_code[t_code_num].type = 13;
+									t_code[t_code_num].arg1 = k + kk;
+									t_code[t_code_num].arg2 = 12;
+									t_code[t_code_num].Code = "load " + to_string(k + kk) + " t4";
+									t_code_num++;
+									t_code[t_code_num].type = 0;
+									t_code[t_code_num].arg1 = 9;
+									t_code[t_code_num].arg2 = 12;
+									t_code[t_code_num].arg3 = 9;
+									t_code[t_code_num].op += "+";
+									t_code[t_code_num].Code = "t1 = t4 + t1";
+									t_code_num++;
+								}
+								else
+								cout << "error occured in p[x] = b" << endl;
+							}
+							t_code[t_code_num].type = 6;
+							t_code[t_code_num].arg1 = 10;
+							t_code[t_code_num].arg2 = 9;
+							t_code[t_code_num].arg3 = 0;
+							t_code[t_code_num].Code = "t2 = t1[0]";
+							t_code_num++;
+							j = 0;
+							if(e_code[i][j] == 'T')
+							{
+								k = 0;
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
 								}
 								if(var_location[k] <= -1) // global
 								{
 									t_code[t_code_num].type = 16;
 									t_code[t_code_num].arg1 = k;
-									t_code[t_code_num].arg2 = 10;
-									t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t2";
+									t_code[t_code_num].arg2 = 8;
+									t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t0";
+									t_code_num++;
+									t_code[t_code_num].type = 5;
+									t_code[t_code_num].arg1 = 8;
+									t_code[t_code_num].arg2 = 0;
+									t_code[t_code_num].arg3 = 10;
+									t_code[t_code_num].Code = "t0[0] = t2";
 									t_code_num++;
 								}
 								else
 								{
-									t_code[t_code_num].type = 15;
-									t_code[t_code_num].arg1 = var_location[k];
-									t_code[t_code_num].arg2 = 10;
-									t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t2";
+									t_code[t_code_num].type = 12;
+									t_code[t_code_num].arg1 = 10;
+									t_code[t_code_num].arg2 = var_location[k];
+									t_code[t_code_num].Code = "store t2 " + to_string(var_location[k]);
 									t_code_num++;
 								}
-								t_code[t_code_num].type = 0;
-								t_code[t_code_num].arg1 = 8;
-								t_code[t_code_num].arg2 = 10;
-								t_code[t_code_num].arg3 = 9;
-								t_code[t_code_num].op += "+";
-								t_code[t_code_num].Code = "t0 = t2 + t1";
+							}
+							else if(e_code[i][j] == 'p')
+							{
+								k = 0;
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
+								t_code[t_code_num].type = 12;
+								t_code[t_code_num].arg2 = k + kk;
+								t_code[t_code_num].arg1 = 10;
+								t_code[t_code_num].Code = "store t2 " + to_string(k + kk);
 								t_code_num++;
 							}
 							else
-							cout << "error occured in a[x] = b" << endl;
+							cout << "error occured in a = b[x]" << endl;
 						}
-						else if(e_code[i][j] == 'p')
-						{
-							k = 0;
-							for(j = j + 1; j < e_code[i].size(); j++)
-							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][j] - '0');
-							}
-							if(e_code[i][j] == '[')
-							{
-								l = 0;
-								j++;
-								if(e_code[i][j] == 'T')
-								{
-									for(j = j + 1; j < e_code[i].size(); j++)
-									{
-										if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-										break;
-										l = l * 10 + (e_code[i][j] - '0');
-									}
-									if(var_location[l] <= -1) // global
-									{
-										t_code[t_code_num].type = 14;
-										t_code[t_code_num].arg1 = l;
-										t_code[t_code_num].arg2 = 9;
-										t_code[t_code_num].Code = "load v" + to_string(l) + " t1";
-										t_code_num++;
-									}
-									else
-									{
-										t_code[t_code_num].type = 13;
-										t_code[t_code_num].arg1 = var_location[l];
-										t_code[t_code_num].arg2 = 9;
-										t_code[t_code_num].Code = "load " + to_string(var_location[l]) + " t1";
-										t_code_num++;
-									}
-								}
-								else
-								{
-									for(; j < e_code[i].size(); j++)
-									{
-										if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-										break;
-										l = l * 10 + (e_code[i][j] - '0');
-									}
-									t_code[t_code_num].type = 4;
-									t_code[t_code_num].arg1 = 9;
-									t_code[t_code_num].arg2 = l;
-									t_code[t_code_num].Code = "t1 = " + to_string(l);
-									t_code_num++;
-								}
-								t_code[t_code_num].type = 13;
-								t_code[t_code_num].arg1 = k + kk;
-								t_code[t_code_num].arg2 = 12;
-								t_code[t_code_num].Code = "load " + to_string(k + kk) + " t4";
-								t_code_num++;
-								t_code[t_code_num].type = 0;
-								t_code[t_code_num].arg1 = 8;
-								t_code[t_code_num].arg2 = 12;
-								t_code[t_code_num].arg3 = 9;
-								t_code[t_code_num].op += "+";
-								t_code[t_code_num].Code = "t0 = t4 + t1";
-								t_code_num++;
-							}
-							else
-							cout << "error occured in p[x] = b" << endl;
-						}
-						for(j = 0; j < e_code[i].size(); j++)
-						if(e_code[i][j] == '=')
+					}
+					else if(e_code[i][j] == '!' || e_code[i][j] == '-') // a = op b
+					{
+						for(l = j + 1; l < e_code[i].size(); l++)
+						if(((e_code[i][l] <= '9' && e_code[i][l] >= '0') || (e_code[i][l] <= 'z' && e_code[i][l] >= 'a') || (e_code[i][l] <= 'Z' && e_code[i][l] >= 'A') || e_code[i][l] == '_'))
 						break;
-						j++;
-						while(j < e_code[i].size() && e_code[i][j] == ' ')
-						j++;
-						if(e_code[i][j] == 'T')
+						if(e_code[i][l] == 'T')
 						{
 							k = 0;
-							for(j = j + 1; j < e_code[i].size(); j++)
+							for(l = l + 1; l < e_code[i].size(); l++)
 							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+								if(!(e_code[i][l] <= '9' && e_code[i][l] >= '0'))
 								break;
-								k = k * 10 + (e_code[i][j] - '0');
+								k = k * 10 + (e_code[i][l] - '0');
 							}
 							if(var_location[k] <= -1) // global
 							{
@@ -3886,14 +4171,14 @@ int E_func(int st)
 								t_code_num++;
 							}
 						}
-						else if(e_code[i][j] <= '9' && e_code[i][j] >= '0')
+						else if(e_code[i][l] <= '9' && e_code[i][l] >= '0')
 						{
 							k = 0;
-							for(; j < e_code[i].size(); j++)
+							for(; l < e_code[i].size(); l++)
 							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+								if(!(e_code[i][l] <= '9' && e_code[i][l] >= '0'))
 								break;
-								k = k * 10 + (e_code[i][j] - '0');
+								k = k * 10 + (e_code[i][l] - '0');
 							}
 							t_code[t_code_num].type = 4;
 							t_code[t_code_num].arg1 = 9;
@@ -3901,14 +4186,14 @@ int E_func(int st)
 							t_code[t_code_num].Code = "t1 = " + to_string(k);
 							t_code_num++;
 						}
-						else if(e_code[i][j] == 'p')
+						else if(e_code[i][l] == 'p')
 						{
 							k = 0;
-							for(j = j + 1; j < e_code[i].size(); j++)
+							for(l = l + 1; l < e_code[i].size(); l++)
 							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+								if(!(e_code[i][l] <= '9' && e_code[i][l] >= '0'))
 								break;
-								k = k * 10 + (e_code[i][j] - '0');
+								k = k * 10 + (e_code[i][l] - '0');
 							}
 							t_code[t_code_num].type = 13;
 							t_code[t_code_num].arg1 = k + kk;
@@ -3916,169 +4201,11 @@ int E_func(int st)
 							t_code[t_code_num].Code = "load " + to_string(k + kk) + " t1";
 							t_code_num++;
 						}
-						else
-						cout << "error occured in a[x] = arg2" << endl;
-						t_code[t_code_num].type = 5;
-						t_code[t_code_num].arg1 = 8;
-						t_code[t_code_num].arg2 = 0;
-						t_code[t_code_num].arg3 = 9;
-						t_code[t_code_num].Code = "t0[0] = t1";
-						t_code_num++;
-					}
-					else// a = b[x]
-					{
-						if(e_code[i][j] == 'T') // 5 lines
-						{
-							k = 0;
-							for(j = j + 1; j < e_code[i].size(); j++)
-							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][j] - '0');
-							}
-							if(e_code[i][j] == '[') // 5 lines
-							{
-								l = 0;
-								j++;
-								if(e_code[i][j] == 'T')
-								{
-									for(j = j + 1; j < e_code[i].size(); j++)
-									{
-										if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-										break;
-										l = l * 10 + (e_code[i][j] - '0');
-									}
-									if(var_location[l] <= -1) // global
-									{
-										t_code[t_code_num].type = 14;
-										t_code[t_code_num].arg1 = l;
-										t_code[t_code_num].arg2 = 9;
-										t_code[t_code_num].Code = "load v" + to_string(l) + " t1";
-										t_code_num++;
-									}
-									else
-									{
-										t_code[t_code_num].type = 13;
-										t_code[t_code_num].arg1 = var_location[l];
-										t_code[t_code_num].arg2 = 9;
-										t_code[t_code_num].Code = "load " + to_string(var_location[l]) + " t1";
-										t_code_num++;
-									}
-								}
-								else
-								{
-									for(; j < e_code[i].size(); j++)
-									{
-										if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-										break;
-										l = l * 10 + (e_code[i][j] - '0');
-									}
-									t_code[t_code_num].type = 4;
-									t_code[t_code_num].arg1 = 9;
-									t_code[t_code_num].arg2 = l;
-									t_code[t_code_num].Code = "t1 = " + to_string(l);
-									t_code_num++;
-								}
-								if(var_location[k] <= -1) // global
-								{
-									t_code[t_code_num].type = 16;
-									t_code[t_code_num].arg1 = k;
-									t_code[t_code_num].arg2 = 10;
-									t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t2";
-									t_code_num++;
-								}
-								else
-								{
-									t_code[t_code_num].type = 15;
-									t_code[t_code_num].arg1 = var_location[k];
-									t_code[t_code_num].arg2 = 10;
-									t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t2";
-									t_code_num++;
-								}
-								t_code[t_code_num].type = 0;
-								t_code[t_code_num].arg1 = 9;
-								t_code[t_code_num].arg2 = 10;
-								t_code[t_code_num].arg3 = 9;
-								t_code[t_code_num].op += "+";
-								t_code[t_code_num].Code = "t1 = t2 + t1";
-								t_code_num++;
-							}
-							else
-							cout << "error occured in b = a[x]" << endl;
-						}
-						else if(e_code[i][j] == 'p')
-						{
-							k = 0;
-							for(j = j + 1; j < e_code[i].size(); j++)
-							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][j] - '0');
-							}
-							if(e_code[i][j] == '[')
-							{
-								l = 0;
-								j++;
-								if(e_code[i][j] == 'T')
-								{
-									for(j = j + 1; j < e_code[i].size(); j++)
-									{
-										if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-										break;
-										l = l * 10 + (e_code[i][j] - '0');
-									}
-									if(var_location[l] <= -1) // global
-									{
-										t_code[t_code_num].type = 14;
-										t_code[t_code_num].arg1 = l;
-										t_code[t_code_num].arg2 = 9;
-										t_code[t_code_num].Code = "load v" + to_string(l) + " t1";
-										t_code_num++;
-									}
-									else
-									{
-										t_code[t_code_num].type = 13;
-										t_code[t_code_num].arg1 = var_location[l];
-										t_code[t_code_num].arg2 = 9;
-										t_code[t_code_num].Code = "load " + to_string(var_location[l]) + " t1";
-										t_code_num++;
-									}
-								}
-								else
-								{
-									for(; j < e_code[i].size(); j++)
-									{
-										if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-										break;
-										l = l * 10 + (e_code[i][j] - '0');
-									}
-									t_code[t_code_num].type = 4;
-									t_code[t_code_num].arg1 = 9;
-									t_code[t_code_num].arg2 = l;
-									t_code[t_code_num].Code = "t1 = " + to_string(l);
-									t_code_num++;
-								}
-								t_code[t_code_num].type = 13;
-								t_code[t_code_num].arg1 = k + kk;
-								t_code[t_code_num].arg2 = 12;
-								t_code[t_code_num].Code = "load " + to_string(k + kk) + " t4";
-								t_code_num++;
-								t_code[t_code_num].type = 0;
-								t_code[t_code_num].arg1 = 9;
-								t_code[t_code_num].arg2 = 12;
-								t_code[t_code_num].arg3 = 9;
-								t_code[t_code_num].op += "+";
-								t_code[t_code_num].Code = "t1 = t4 + t1";
-								t_code_num++;
-							}
-							else
-							cout << "error occured in p[x] = b" << endl;
-						}
-						t_code[t_code_num].type = 6;
+						t_code[t_code_num].type = 2;
 						t_code[t_code_num].arg1 = 10;
 						t_code[t_code_num].arg2 = 9;
-						t_code[t_code_num].arg3 = 0;
-						t_code[t_code_num].Code = "t2 = t1[0]";
+						t_code[t_code_num].op += e_code[i][j];			
+						t_code[t_code_num].Code = "t2 = " + t_code[t_code_num].op + "t1";
 						t_code_num++;
 						j = 0;
 						if(e_code[i][j] == 'T')
@@ -4129,509 +4256,558 @@ int E_func(int st)
 							t_code_num++;
 						}
 						else
-						cout << "error occured in a = b[x]" << endl;
+						cout << "error occured in a = op b" << endl;
 					}
-				}
-				else if(e_code[i][j] == '!' || e_code[i][j] == '-') // a = op b
-				{
-					for(l = j + 1; l < e_code[i].size(); l++)
-					if(((e_code[i][l] <= '9' && e_code[i][l] >= '0') || (e_code[i][l] <= 'z' && e_code[i][l] >= 'a') || (e_code[i][l] <= 'Z' && e_code[i][l] >= 'A') || e_code[i][l] == '_'))
-					break;
-					if(e_code[i][l] == 'T')
+					else // a = b or a = b op c; 5 lines
 					{
-						k = 0;
-						for(l = l + 1; l < e_code[i].size(); l++)
+						for(; j < e_code[i].size(); j++)
 						{
-							if(!(e_code[i][l] <= '9' && e_code[i][l] >= '0'))
+							if(e_code[i][j] != ' ' && (e_code[i][j] < '0' || (e_code[i][j] > '9' && e_code[i][j] < 'A') || e_code[i][j] > 'z'))
 							break;
-							k = k * 10 + (e_code[i][l] - '0');
 						}
-						if(var_location[k] <= -1) // global
+						if(j != e_code[i].size()) // a = b op c
 						{
-							t_code[t_code_num].type = 14;
-							t_code[t_code_num].arg1 = k;
+							Name.clear();
+							Name += e_code[i][j];
+							if(e_code[i][j+1] == '=' || e_code[i][j+1] == '&' || e_code[i][j+1] == '|')
+							Name += e_code[i][j+1];
+							for(l = j + 1; l < e_code[i].size(); l++)
+							if(((e_code[i][l] <= '9' && e_code[i][l] >= '0') || (e_code[i][l] <= 'z' && e_code[i][l] >= 'a') || (e_code[i][l] <= 'Z' && e_code[i][l] >= 'A') || e_code[i][l] == '_'))
+							break;
+							if(e_code[i][l] == 'T')
+							{
+								k = 0;
+								for(l = l + 1; l < e_code[i].size(); l++)
+								{
+									if(!(e_code[i][l] <= '9' && e_code[i][l] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][l] - '0');
+								}
+								if(var_location[k] == -1) // global
+								{
+									t_code[t_code_num].type = 14;
+									t_code[t_code_num].arg1 = k;
+									t_code[t_code_num].arg2 = 10;
+									t_code[t_code_num].Code = "load v" + to_string(k) + " t2";
+									t_code_num++;
+								}
+								else if(var_location[k] == -2) // global
+								{
+									t_code[t_code_num].type = 16;
+									t_code[t_code_num].arg1 = k;
+									t_code[t_code_num].arg2 = 10;
+									t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t2";
+									t_code_num++;
+								}
+								else if(is_arr[k] == 1)
+								{
+									t_code[t_code_num].type = 15;
+									t_code[t_code_num].arg1 = var_location[k];
+									t_code[t_code_num].arg2 = 10;
+									t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t2";
+									t_code_num++;
+								}
+								else
+								{
+									t_code[t_code_num].type = 13;
+									t_code[t_code_num].arg1 = var_location[k];
+									t_code[t_code_num].arg2 = 10;
+									t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " t2";
+									t_code_num++;
+								}
+							}
+							else if(e_code[i][l] <= '9' && e_code[i][l] >= '0')
+							{
+								k = 0;
+								for(; l < e_code[i].size(); l++)
+								{
+									if(!(e_code[i][l] <= '9' && e_code[i][l] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][l] - '0');
+								}
+								t_code[t_code_num].type = 4;
+								t_code[t_code_num].arg1 = 10;
+								t_code[t_code_num].arg2 = k;
+								t_code[t_code_num].Code = "t2 = " + to_string(k);
+								t_code_num++;
+							}
+							else if(e_code[i][l] == 'p')
+							{
+								k = 0;
+								for(l = l + 1; l < e_code[i].size(); l++)
+								{
+									if(!(e_code[i][l] <= '9' && e_code[i][l] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][l] - '0');
+								}
+								t_code[t_code_num].type = 13;
+								t_code[t_code_num].arg1 = k + kk;
+								t_code[t_code_num].arg2 = 10;
+								t_code[t_code_num].Code = "load " + to_string(k + kk) + " t2";
+								t_code_num++;
+							}
+							else
+							cout << "error occured in a = b op arg3" << endl;
+							l = j;
+							for(j = 0; j < e_code[i].size(); j++)
+							if(e_code[i][j] == '=')
+							break;
+							j++;
+							while(j < e_code[i].size() && e_code[i][j] == ' ')
+							j++;
+							if(e_code[i][j] == 'T')
+							{
+								k = 0;
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
+								if(var_location[k] == -1) // global
+								{
+									t_code[t_code_num].type = 14;
+									t_code[t_code_num].arg1 = k;
+									t_code[t_code_num].arg2 = 9;
+									t_code[t_code_num].Code = "load v" + to_string(k) + " t1";
+									t_code_num++;
+								}
+								else if(var_location[k] == -2) // global
+								{
+									t_code[t_code_num].type = 16;
+									t_code[t_code_num].arg1 = k;
+									t_code[t_code_num].arg2 = 9;
+									t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t1";
+									t_code_num++;
+								}
+								else if(is_arr[k] == 1)
+								{
+									t_code[t_code_num].type = 15;
+									t_code[t_code_num].arg1 = var_location[k];
+									t_code[t_code_num].arg2 = 9;
+									t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t1";
+									t_code_num++;
+								}
+								else
+								{
+									t_code[t_code_num].type = 13;
+									t_code[t_code_num].arg1 = var_location[k];
+									t_code[t_code_num].arg2 = 9;
+									t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " t1";
+									t_code_num++;
+								}
+							}
+							else if(e_code[i][j] <= '9' && e_code[i][j] >= '0')
+							{
+								k = 0;
+								for(; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
+								t_code[t_code_num].type = 4;
+								t_code[t_code_num].arg1 = 9;
+								t_code[t_code_num].arg2 = k;
+								t_code[t_code_num].Code = "t1 = " + to_string(k);
+								t_code_num++;
+							}
+							else if(e_code[i][j] == 'p')
+							{
+								k = 0;
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
+								t_code[t_code_num].type = 13;
+								t_code[t_code_num].arg1 = k + kk;
+								t_code[t_code_num].arg2 = 9;
+								t_code[t_code_num].Code = "load " + to_string(k + kk) + " t1";
+								t_code_num++;
+							}
+							else
+							cout << "error occured in a = arg2 op c" << endl;
+							t_code[t_code_num].type = 0;
+							t_code[t_code_num].arg1 = 9;
 							t_code[t_code_num].arg2 = 9;
-							t_code[t_code_num].Code = "load v" + to_string(k) + " t1";
-							t_code_num++;
-						}
-						else
-						{
-							t_code[t_code_num].type = 13;
-							t_code[t_code_num].arg1 = var_location[k];
-							t_code[t_code_num].arg2 = 9;
-							t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " t1";
-							t_code_num++;
-						}
-					}
-					else if(e_code[i][l] <= '9' && e_code[i][l] >= '0')
-					{
-						k = 0;
-						for(; l < e_code[i].size(); l++)
-						{
-							if(!(e_code[i][l] <= '9' && e_code[i][l] >= '0'))
-							break;
-							k = k * 10 + (e_code[i][l] - '0');
-						}
-						t_code[t_code_num].type = 4;
-						t_code[t_code_num].arg1 = 9;
-						t_code[t_code_num].arg2 = k;
-						t_code[t_code_num].Code = "t1 = " + to_string(k);
-						t_code_num++;
-					}
-					else if(e_code[i][l] == 'p')
-					{
-						k = 0;
-						for(l = l + 1; l < e_code[i].size(); l++)
-						{
-							if(!(e_code[i][l] <= '9' && e_code[i][l] >= '0'))
-							break;
-							k = k * 10 + (e_code[i][l] - '0');
-						}
-						t_code[t_code_num].type = 13;
-						t_code[t_code_num].arg1 = k + kk;
-						t_code[t_code_num].arg2 = 9;
-						t_code[t_code_num].Code = "load " + to_string(k + kk) + " t1";
-						t_code_num++;
-					}
-					t_code[t_code_num].type = 2;
-					t_code[t_code_num].arg1 = 10;
-					t_code[t_code_num].arg2 = 9;
-					t_code[t_code_num].op += e_code[i][j];			
-					t_code[t_code_num].Code = "t2 = " + t_code[t_code_num].op + "t1";
-					t_code_num++;
-					j = 0;
-					if(e_code[i][j] == 'T')
-					{
-						k = 0;
-						for(j = j + 1; j < e_code[i].size(); j++)
-						{
-							if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-							break;
-							k = k * 10 + (e_code[i][j] - '0');
-						}
-						if(var_location[k] <= -1) // global
-						{
-							t_code[t_code_num].type = 16;
-							t_code[t_code_num].arg1 = k;
-							t_code[t_code_num].arg2 = 8;
-							t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t0";
-							t_code_num++;
-							t_code[t_code_num].type = 5;
-							t_code[t_code_num].arg1 = 8;
-							t_code[t_code_num].arg2 = 0;
 							t_code[t_code_num].arg3 = 10;
-							t_code[t_code_num].Code = "t0[0] = t2";
+							t_code[t_code_num].op += Name;
+							t_code[t_code_num].Code = "t1 = t1 " + Name + " t2";
 							t_code_num++;
+							j = 0;
+							if(e_code[i][j] == 'T')
+							{
+								k = 0;
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
+								if(var_location[k] <= -1) // global
+								{
+									t_code[t_code_num].type = 16;
+									t_code[t_code_num].arg1 = k;
+									t_code[t_code_num].arg2 = 8;
+									t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t0";
+									t_code_num++;
+									t_code[t_code_num].type = 5;
+									t_code[t_code_num].arg1 = 8;
+									t_code[t_code_num].arg2 = 0;
+									t_code[t_code_num].arg3 = 9;
+									t_code[t_code_num].Code = "t0[0] = t1";
+									t_code_num++;
+								}
+								else
+								{
+									t_code[t_code_num].type = 12;
+									t_code[t_code_num].arg1 = 9;
+									t_code[t_code_num].arg2 = var_location[k];
+									t_code[t_code_num].Code = "store t1 " + to_string(var_location[k]);
+									t_code_num++;
+								}
+							}
+							else if(e_code[i][j] == 'p')
+							{
+								k = 0;
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
+								t_code[t_code_num].type = 12;
+								t_code[t_code_num].arg2 = k + kk;
+								t_code[t_code_num].arg1 = 9;
+								t_code[t_code_num].Code = "store t1 " + to_string(k + kk);
+								t_code_num++;
+							}
+							else
+							cout << "error occured in arg1 = b op c" << endl;
 						}
-						else
+						else // a = b
 						{
-							t_code[t_code_num].type = 12;
-							t_code[t_code_num].arg1 = 10;
-							t_code[t_code_num].arg2 = var_location[k];
-							t_code[t_code_num].Code = "store t2 " + to_string(var_location[k]);
-							t_code_num++;
-						}
-					}
-					else if(e_code[i][j] == 'p')
-					{
-						k = 0;
-						for(j = j + 1; j < e_code[i].size(); j++)
-						{
-							if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+							for(j = 0; j < e_code[i].size(); j++)
+							if(e_code[i][j] == '=')
 							break;
-							k = k * 10 + (e_code[i][j] - '0');
-						}
-						t_code[t_code_num].type = 12;
-						t_code[t_code_num].arg2 = k + kk;
-						t_code[t_code_num].arg1 = 10;
-						t_code[t_code_num].Code = "store t2 " + to_string(k + kk);
-						t_code_num++;
-					}
-					else
-					cout << "error occured in a = op b" << endl;
-				}
-				else // a = b or a = b op c; 5 lines
-				{
-					for(; j < e_code[i].size(); j++)
-					{
-						if(e_code[i][j] != ' ' && (e_code[i][j] < '0' || (e_code[i][j] > '9' && e_code[i][j] < 'A') || e_code[i][j] > 'z'))
-						break;
-					}
-					if(j != e_code[i].size()) // a = b op c
-					{
-						Name.clear();
-						Name += e_code[i][j];
-						if(e_code[i][j+1] == '=' || e_code[i][j+1] == '&' || e_code[i][j+1] == '|')
-						Name += e_code[i][j+1];
-						for(l = j + 1; l < e_code[i].size(); l++)
-						if(((e_code[i][l] <= '9' && e_code[i][l] >= '0') || (e_code[i][l] <= 'z' && e_code[i][l] >= 'a') || (e_code[i][l] <= 'Z' && e_code[i][l] >= 'A') || e_code[i][l] == '_'))
-						break;
-						if(e_code[i][l] == 'T')
-						{
-							k = 0;
-							for(l = l + 1; l < e_code[i].size(); l++)
+							j++;
+							while(j < e_code[i].size() && e_code[i][j] == ' ')
+							j++;
+							if(e_code[i][j] == 'T')
 							{
-								if(!(e_code[i][l] <= '9' && e_code[i][l] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][l] - '0');
+								k = 0;
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
+								if(var_location[k] == -1) // global
+								{
+									t_code[t_code_num].type = 14;
+									t_code[t_code_num].arg1 = k;
+									t_code[t_code_num].arg2 = 9;
+									t_code[t_code_num].Code = "load v" + to_string(k) + " t1";
+									t_code_num++;
+								}
+								else if(var_location[k] == -2) // global
+								{
+									t_code[t_code_num].type = 16;
+									t_code[t_code_num].arg1 = k;
+									t_code[t_code_num].arg2 = 9;
+									t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t1";
+									t_code_num++;
+								}
+								else if(is_arr[k] == 1)
+								{
+									t_code[t_code_num].type = 15;
+									t_code[t_code_num].arg1 = var_location[k];
+									t_code[t_code_num].arg2 = 9;
+									t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t1";
+									t_code_num++;
+								}
+								else
+								{
+									t_code[t_code_num].type = 13;
+									t_code[t_code_num].arg1 = var_location[k];
+									t_code[t_code_num].arg2 = 9;
+									t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " t1";
+									t_code_num++;
+								}
 							}
-							if(var_location[k] == -1) // global
+							else if(e_code[i][j] <= '9' && e_code[i][j] >= '0')
 							{
-								t_code[t_code_num].type = 14;
-								t_code[t_code_num].arg1 = k;
-								t_code[t_code_num].arg2 = 10;
-								t_code[t_code_num].Code = "load v" + to_string(k) + " t2";
-								t_code_num++;
-							}
-							else if(var_location[k] == -2) // global
-							{
-								t_code[t_code_num].type = 16;
-								t_code[t_code_num].arg1 = k;
-								t_code[t_code_num].arg2 = 10;
-								t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t2";
-								t_code_num++;
-							}
-							else if(is_arr[k] == 1)
-							{
-								t_code[t_code_num].type = 15;
-								t_code[t_code_num].arg1 = var_location[k];
-								t_code[t_code_num].arg2 = 10;
-								t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t2";
-								t_code_num++;
-							}
-							else
-							{
-								t_code[t_code_num].type = 13;
-								t_code[t_code_num].arg1 = var_location[k];
-								t_code[t_code_num].arg2 = 10;
-								t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " t2";
-								t_code_num++;
-							}
-						}
-						else if(e_code[i][l] <= '9' && e_code[i][l] >= '0')
-						{
-							k = 0;
-							for(; l < e_code[i].size(); l++)
-							{
-								if(!(e_code[i][l] <= '9' && e_code[i][l] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][l] - '0');
-							}
-							t_code[t_code_num].type = 4;
-							t_code[t_code_num].arg1 = 10;
-							t_code[t_code_num].arg2 = k;
-							t_code[t_code_num].Code = "t2 = " + to_string(k);
-							t_code_num++;
-						}
-						else if(e_code[i][l] == 'p')
-						{
-							k = 0;
-							for(l = l + 1; l < e_code[i].size(); l++)
-							{
-								if(!(e_code[i][l] <= '9' && e_code[i][l] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][l] - '0');
-							}
-							t_code[t_code_num].type = 13;
-							t_code[t_code_num].arg1 = k + kk;
-							t_code[t_code_num].arg2 = 10;
-							t_code[t_code_num].Code = "load " + to_string(k + kk) + " t2";
-							t_code_num++;
-						}
-						else
-						cout << "error occured in a = b op arg3" << endl;
-						l = j;
-						for(j = 0; j < e_code[i].size(); j++)
-						if(e_code[i][j] == '=')
-						break;
-						j++;
-						while(j < e_code[i].size() && e_code[i][j] == ' ')
-						j++;
-						if(e_code[i][j] == 'T')
-						{
-							k = 0;
-							for(j = j + 1; j < e_code[i].size(); j++)
-							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][j] - '0');
-							}
-							if(var_location[k] == -1) // global
-							{
-								t_code[t_code_num].type = 14;
-								t_code[t_code_num].arg1 = k;
-								t_code[t_code_num].arg2 = 9;
-								t_code[t_code_num].Code = "load v" + to_string(k) + " t1";
-								t_code_num++;
-							}
-							else if(var_location[k] == -2) // global
-							{
-								t_code[t_code_num].type = 16;
-								t_code[t_code_num].arg1 = k;
-								t_code[t_code_num].arg2 = 9;
-								t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t1";
-								t_code_num++;
-							}
-							else if(is_arr[k] == 1)
-							{
-								t_code[t_code_num].type = 15;
-								t_code[t_code_num].arg1 = var_location[k];
-								t_code[t_code_num].arg2 = 9;
-								t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t1";
-								t_code_num++;
-							}
-							else
-							{
-								t_code[t_code_num].type = 13;
-								t_code[t_code_num].arg1 = var_location[k];
-								t_code[t_code_num].arg2 = 9;
-								t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " t1";
-								t_code_num++;
-							}
-						}
-						else if(e_code[i][j] <= '9' && e_code[i][j] >= '0')
-						{
-							k = 0;
-							for(; j < e_code[i].size(); j++)
-							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][j] - '0');
-							}
-							t_code[t_code_num].type = 4;
-							t_code[t_code_num].arg1 = 9;
-							t_code[t_code_num].arg2 = k;
-							t_code[t_code_num].Code = "t1 = " + to_string(k);
-							t_code_num++;
-						}
-						else if(e_code[i][j] == 'p')
-						{
-							k = 0;
-							for(j = j + 1; j < e_code[i].size(); j++)
-							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][j] - '0');
-							}
-							t_code[t_code_num].type = 13;
-							t_code[t_code_num].arg1 = k + kk;
-							t_code[t_code_num].arg2 = 9;
-							t_code[t_code_num].Code = "load " + to_string(k + kk) + " t1";
-							t_code_num++;
-						}
-						else
-						cout << "error occured in a = arg2 op c" << endl;
-						t_code[t_code_num].type = 0;
-						t_code[t_code_num].arg1 = 9;
-						t_code[t_code_num].arg2 = 9;
-						t_code[t_code_num].arg3 = 10;
-						t_code[t_code_num].op += Name;
-						t_code[t_code_num].Code = "t1 = t1 " + Name + " t2";
-						t_code_num++;
-						j = 0;
-						if(e_code[i][j] == 'T')
-						{
-							k = 0;
-							for(j = j + 1; j < e_code[i].size(); j++)
-							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][j] - '0');
-							}
-							if(var_location[k] <= -1) // global
-							{
-								t_code[t_code_num].type = 16;
-								t_code[t_code_num].arg1 = k;
-								t_code[t_code_num].arg2 = 8;
-								t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t0";
-								t_code_num++;
-								t_code[t_code_num].type = 5;
-								t_code[t_code_num].arg1 = 8;
-								t_code[t_code_num].arg2 = 0;
-								t_code[t_code_num].arg3 = 9;
-								t_code[t_code_num].Code = "t0[0] = t1";
-								t_code_num++;
-							}
-							else
-							{
-								t_code[t_code_num].type = 12;
+								k = 0;
+								for(; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
+								t_code[t_code_num].type = 4;
 								t_code[t_code_num].arg1 = 9;
-								t_code[t_code_num].arg2 = var_location[k];
-								t_code[t_code_num].Code = "store t1 " + to_string(var_location[k]);
+								t_code[t_code_num].arg2 = k;
+								t_code[t_code_num].Code = "t1 = " + to_string(k);
 								t_code_num++;
 							}
-						}
-						else if(e_code[i][j] == 'p')
-						{
-							k = 0;
-							for(j = j + 1; j < e_code[i].size(); j++)
+							else if(e_code[i][j] == 'p')
 							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][j] - '0');
-							}
-							t_code[t_code_num].type = 12;
-							t_code[t_code_num].arg2 = k + kk;
-							t_code[t_code_num].arg1 = 9;
-							t_code[t_code_num].Code = "store t1 " + to_string(k + kk);
-							t_code_num++;
-						}
-						else
-						cout << "error occured in arg1 = b op c" << endl;
-					}
-					else // a = b
-					{
-						for(j = 0; j < e_code[i].size(); j++)
-						if(e_code[i][j] == '=')
-						break;
-						j++;
-						while(j < e_code[i].size() && e_code[i][j] == ' ')
-						j++;
-						if(e_code[i][j] == 'T')
-						{
-							k = 0;
-							for(j = j + 1; j < e_code[i].size(); j++)
-							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][j] - '0');
-							}
-							if(var_location[k] == -1) // global
-							{
-								t_code[t_code_num].type = 14;
-								t_code[t_code_num].arg1 = k;
-								t_code[t_code_num].arg2 = 9;
-								t_code[t_code_num].Code = "load v" + to_string(k) + " t1";
-								t_code_num++;
-							}
-							else if(var_location[k] == -2) // global
-							{
-								t_code[t_code_num].type = 16;
-								t_code[t_code_num].arg1 = k;
-								t_code[t_code_num].arg2 = 9;
-								t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t1";
-								t_code_num++;
-							}
-							else if(is_arr[k] == 1)
-							{
-								t_code[t_code_num].type = 15;
-								t_code[t_code_num].arg1 = var_location[k];
-								t_code[t_code_num].arg2 = 9;
-								t_code[t_code_num].Code = "loadaddr " + to_string(var_location[k]) + " t1";
-								t_code_num++;
-							}
-							else
-							{
+								k = 0;
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
 								t_code[t_code_num].type = 13;
-								t_code[t_code_num].arg1 = var_location[k];
+								t_code[t_code_num].arg1 = k + kk;
 								t_code[t_code_num].arg2 = 9;
-								t_code[t_code_num].Code = "load " + to_string(var_location[k]) + " t1";
-								t_code_num++;
-							}
-						}
-						else if(e_code[i][j] <= '9' && e_code[i][j] >= '0')
-						{
-							k = 0;
-							for(; j < e_code[i].size(); j++)
-							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][j] - '0');
-							}
-							t_code[t_code_num].type = 4;
-							t_code[t_code_num].arg1 = 9;
-							t_code[t_code_num].arg2 = k;
-							t_code[t_code_num].Code = "t1 = " + to_string(k);
-							t_code_num++;
-						}
-						else if(e_code[i][j] == 'p')
-						{
-							k = 0;
-							for(j = j + 1; j < e_code[i].size(); j++)
-							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][j] - '0');
-							}
-							t_code[t_code_num].type = 13;
-							t_code[t_code_num].arg1 = k + kk;
-							t_code[t_code_num].arg2 = 9;
-							t_code[t_code_num].Code = "load " + to_string(k + kk) + " t1";
-							t_code_num++;
-						}
-						else
-						cout << "error occured in a = arg2" << endl;
-						j = 0;
-						if(e_code[i][j] == 'T')
-						{
-							k = 0;
-							for(j = j + 1; j < e_code[i].size(); j++)
-							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][j] - '0');
-							}
-							if(var_location[k] <= -1) // global
-							{
-								t_code[t_code_num].type = 16;
-								t_code[t_code_num].arg1 = k;
-								t_code[t_code_num].arg2 = 8;
-								t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t0";
-								t_code_num++;
-								t_code[t_code_num].type = 5;
-								t_code[t_code_num].arg1 = 8;
-								t_code[t_code_num].arg2 = 0;
-								t_code[t_code_num].arg3 = 9;
-								t_code[t_code_num].Code = "t0[0] = t1";
+								t_code[t_code_num].Code = "load " + to_string(k + kk) + " t1";
 								t_code_num++;
 							}
 							else
+							cout << "error occured in a = arg2" << endl;
+							j = 0;
+							if(e_code[i][j] == 'T')
 							{
+								k = 0;
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
+								if(var_location[k] <= -1) // global
+								{
+									t_code[t_code_num].type = 16;
+									t_code[t_code_num].arg1 = k;
+									t_code[t_code_num].arg2 = 8;
+									t_code[t_code_num].Code = "loadaddr v" + to_string(k) + " t0";
+									t_code_num++;
+									t_code[t_code_num].type = 5;
+									t_code[t_code_num].arg1 = 8;
+									t_code[t_code_num].arg2 = 0;
+									t_code[t_code_num].arg3 = 9;
+									t_code[t_code_num].Code = "t0[0] = t1";
+									t_code_num++;
+								}
+								else
+								{
+									t_code[t_code_num].type = 12;
+									t_code[t_code_num].arg1 = 9;
+									t_code[t_code_num].arg2 = var_location[k];
+									t_code[t_code_num].Code = "store t1 " + to_string(var_location[k]);
+									t_code_num++;
+								}
+							}
+							else if(e_code[i][j] == 'p')
+							{
+								k = 0;
+								for(j = j + 1; j < e_code[i].size(); j++)
+								{
+									if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
+									break;
+									k = k * 10 + (e_code[i][j] - '0');
+								}
 								t_code[t_code_num].type = 12;
+								t_code[t_code_num].arg2 = k + kk;
 								t_code[t_code_num].arg1 = 9;
-								t_code[t_code_num].arg2 = var_location[k];
-								t_code[t_code_num].Code = "store t1 " + to_string(var_location[k]);
+								t_code[t_code_num].Code = "store t1 " + to_string(k + kk);
 								t_code_num++;
 							}
+							else
+							cout << "error occured in arg1 = b" << endl;
 						}
-						else if(e_code[i][j] == 'p')
-						{
-							k = 0;
-							for(j = j + 1; j < e_code[i].size(); j++)
-							{
-								if(!(e_code[i][j] <= '9' && e_code[i][j] >= '0'))
-								break;
-								k = k * 10 + (e_code[i][j] - '0');
-							}
-							t_code[t_code_num].type = 12;
-							t_code[t_code_num].arg2 = k + kk;
-							t_code[t_code_num].arg1 = 9;
-							t_code[t_code_num].Code = "store t1 " + to_string(k + kk);
-							t_code_num++;
-						}
-						else
-						cout << "error occured in arg1 = b" << endl;
 					}
 				}
 			}
+			//else
+			//cout << "miss something? " << endl << e_code[i] << endl;
 		}
-		//else
-		//cout << "miss something? " << endl << e_code[i] << endl;
 	}
-}
-void eeyore2tigger()
-{
-	int i, j, k;
-	i = cal_global();
-	for(; i < e_code_num; i++)
+	void eeyore2tigger()
 	{
-		if(e_code[i][0] == 'f')
-		i = E_func(i);
+		int i, j, k;
+		i = cal_global();
+		for(; i < e_code_num; i++)
+		{
+			if(e_code[i][0] == 'f')
+			i = E_func(i);
+		}
 	}
-}
-
 // tigger end
 
+// RISC-V start
+void tigger2riscv(ofstream & o)
+{
+	int i, j, k;
+	for(i = 0; i < t_code_num; i++)
+	{
+		string Name;
+		if(t_code[i].type == 0)
+		{
+			if(t_code[i].op == "+")
+			o << "add " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", " << regs[t_code[i].arg3] << endl;
+			else if(t_code[i].op == "-")
+			o << "sub " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", " << regs[t_code[i].arg3] << endl;
+			else if(t_code[i].op == "*")
+			o << "mul " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", " << regs[t_code[i].arg3] << endl;
+			else if(t_code[i].op == "/")
+			o << "div " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", " << regs[t_code[i].arg3] << endl;
+			else if(t_code[i].op == "%")
+			o << "rem " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", " << regs[t_code[i].arg3] << endl;
+			else if(t_code[i].op == "<")
+			o << "slt " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", " << regs[t_code[i].arg3] << endl;
+			else if(t_code[i].op == ">")
+			o << "sgt " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", " << regs[t_code[i].arg3] << endl;
+			else if(t_code[i].op == "<=")
+			{
+				o << "sgt " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", " << regs[t_code[i].arg3] << endl;
+				o << "seqz " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg1] << endl;
+			}
+			else if(t_code[i].op == ">=")
+			{
+				o << "slt " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", " << regs[t_code[i].arg3] << endl;
+				o << "seqz " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg1] << endl;
+			}
+			else if(t_code[i].op == "&&")
+			{
+				o << "snez  " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << endl;
+				o << "snez t5, " << regs[t_code[i].arg3] << endl;
+				o << "and " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg1] << ", t5" << endl;
+			}
+			else if(t_code[i].op == "||")
+			{
+				o << "or " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", " << regs[t_code[i].arg3] << endl;
+				o << "snez " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg1] << endl;
+			}
+			else if(t_code[i].op == "!=")
+			{
+				o << "xor " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", " << regs[t_code[i].arg3] << endl;
+				o << "snez " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg1] << endl;
+			}
+			else if(t_code[i].op == "==")
+			{
+				o << "xor " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", " << regs[t_code[i].arg3] << endl;
+				o << "seqz " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg1] << endl;
+			}
+			else
+			cout << "type = 0 error" << endl;
+		}
+		else if(t_code[i].type == 1)
+		cout << "no type = 1" << endl;
+		else if(t_code[i].type == 2)
+		{
+			if(t_code[i].op == "-")
+			o << "neg " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << endl;
+			else if(t_code[i].op == "!")
+			o << "seqz " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << endl;
+		}
+		else if(t_code[i].type == 3)
+		o << "mv " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << endl;
+		else if(t_code[i].type == 4)
+		o << "li " << regs[t_code[i].arg1] << ", " << t_code[i].arg2 << endl;
+		else if(t_code[i].type == 5) // arg2 must be 0
+		o << "sw " << regs[t_code[i].arg3] << ", 0(" << regs[t_code[i].arg1] << ')' << endl;
+		else if(t_code[i].type == 6) // arg3 must be 0
+		o << "sw " << regs[t_code[i].arg1] << ", 0(" << regs[t_code[i].arg2] << ')' << endl;
+		else if(t_code[i].type == 7)
+		{
+			if(t_code[i].op == "<")
+			o << "blt " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", .l" << t_code[i].arg3 << endl;
+			else if(t_code[i].op == ">")
+			o << "bgt " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", .l" << t_code[i].arg3 << endl;
+			else if(t_code[i].op == "<=")
+			o << "ble " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", .l" << t_code[i].arg3 << endl;
+			else if(t_code[i].op == ">=")
+			o << "bge " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", .l" << t_code[i].arg3 << endl;
+			else if(t_code[i].op == "!=")
+			o << "bne " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", .l" << t_code[i].arg3 << endl;
+			else if(t_code[i].op == "==")
+			o << "beq " << regs[t_code[i].arg1] << ", " << regs[t_code[i].arg2] << ", .l" << t_code[i].arg3 << endl;
+			else
+			cout << "type = 7 error" << endl;
+		}
+		else if(t_code[i].type == 8)
+		o << "j .l" << t_code[i].arg1 << endl;
+		else if(t_code[i].type == 9)
+		o << ".l" << t_code[i].arg1 << ':' << endl;
+		else if(t_code[i].type == 10)
+		o << "call " << t_code[i].op << endl;
+		else if(t_code[i].type == 11)
+		{
+			o << "lw ra, " << t_code[i].arg1-4 << "(sp)" << endl;
+			o << "addi sp, sp, " << t_code[i].arg1 << endl;
+			o << "ret" << endl;
+		}
+		else if(t_code[i].type == 12)
+		{
+			if(t_code[i].arg2 < 512 && t_code[i].arg2 > -512)
+			o << "sw " << regs[t_code[i].arg1] << ", " << t_code[i].arg2 * 4 << "(sp)" << endl;
+			else
+			{
+				o << "li t5 " << t_code[i].arg2 * 4 << endl;
+				o << "add  t5, t5, sp" << endl;
+				o << "sw " << regs[t_code[i].arg1] << "0(t5)" << endl;
+			}
+		}
+		else if(t_code[i].type == 13)
+		{
+			if(t_code[i].arg1 < 512 && t_code[i].arg1 > -512)
+			o << "lw " << regs[t_code[i].arg2] << ", " << t_code[i].arg1 * 4 << "(sp)" << endl;
+			else
+			{
+				o << "li t5 " << t_code[i].arg1 * 4 << endl;
+				o << "add  t5, t5, sp" << endl;
+				o << "lw " << regs[t_code[i].arg2] << "0(t5)" << endl;
+			}
+		}
+		else if(t_code[i].type == 14)
+		{
+			o << "lui " << regs[t_code[i].arg2] << "\%hi(v" << t_code[i].arg1 << ")" << endl;
+			o << "lw " << regs[t_code[i].arg2] << "\%lo(v" << t_code[i].arg1 << ")(" << regs[t_code[i].arg2] << ')' << endl;
+		}
+		else if(t_code[i].type == 15)
+		{
+			if(t_code[i].arg1 < 512 && t_code[i].arg1 > -512)
+			o << "addi " << regs[t_code[i].arg2] << ", sp, " << t_code[i].arg1 * 4 << endl;
+			else
+			{
+				o << "li t5 " << t_code[i].arg1 * 4 << endl;
+				o << "add " << regs[t_code[i].arg2] << ", t5, sp" << endl;
+			}
+		}
+		else if(t_code[i].type == 16)
+		o << "la " << regs[t_code[i].arg2] << ", v" << t_code[i].arg1 << endl;
+		else if(t_code[i].type == 17)
+		{
+			o << ".global v" << t_code[i].arg1 << endl;
+			o << ".section .sdata" << endl;
+			o << ".align 2" << endl;
+			o << ".type global_var, @object" << endl;
+			o << ".size global_var, 4" << endl;
+			o << "global_var:" << endl;
+			o << ".word " << t_code[i].arg2 << endl;
+		}
+		else if(t_code[i].type == 18)
+		o << ".comm v" << t_code[i].arg1 << ", " << t_code[i].arg2 << ", 4" << endl;
+		else if(t_code[i].type == 19)
+		{
+			o << ".text" << endl;
+			o << ".align 2" << endl;
+			o << ".global " << t_code[i].op << endl;
+			o << ".type " << t_code[i].op << ", @function" << endl;
+			o << "func:" << endl;
+			o << "addi sp, sp, " << -t_code[i].arg3 << endl;
+			o << "sw ra, " << t_code[i].arg3 - 4 << "(sp)" << endl;
+		}
+		else if(t_code[i].type == 20)
+		o << ".size " << t_code[i].op << ", .-" << t_code[i].op << endl;
+	}
+}
+// RISC-V end
 
 int main(int argc, char *argv[])
 {
@@ -4670,8 +4846,7 @@ int main(int argc, char *argv[])
 	Read_lines(0, n);
 	Adjust_order();
 	eeyore2tigger();
-	for(int i = 0; i < t_code_num; i++)
-	o << t_code[i].Code << endl;
+	tigger2riscv(o);
 
 	ifs.close();
 	o.close();
