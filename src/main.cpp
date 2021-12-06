@@ -2893,7 +2893,7 @@ void IF(int st, int en);
 	}
 	void Adjust_order()
 	{
-		int i, j, k = 0, l, m, kk;
+		int i, j, k = 0, l, m, kk, ll;
 		for(l = 0; l < e_code_num; l++)
 		{
 			if(e_code[l].size() > 7 && e_code[l][0] == 'f' && e_code[l][1] == '_' && e_code[l][2] == 'm' && e_code[l][3] == 'a' && e_code[l][4] == 'i' && e_code[l][5] == 'n' && e_code[l][6] == ' ')
@@ -2961,7 +2961,7 @@ void IF(int st, int en);
 		m = l;
 		for(k = 0; k < l; k++)
 		{
-			string tmps;
+			string tmps[400];
 			if(e_code[k][0] == 'f' && e_code[k][1] == '_')
 			{
 				while(!(e_code[k].size() > 4 && e_code[k][0] == 'e' && e_code[k][1] == 'n' && e_code[k][2] == 'd' && e_code[k][3] == ' ' ))
@@ -2971,17 +2971,26 @@ void IF(int st, int en);
 			continue;
 			else
 			{
-				for(j = 0; j < e_code[k].size(); j++)
-				tmps += e_code[k][j];
-				for(j = k; j < m; j++)
+				for(kk = k; kk < l && kk - k < 400; kk++)
+				{
+					if(e_code[kk][0] == 'v' || (e_code[kk][0] == 'f' && e_code[kk][1] == '_'))
+					break;
+					for(j = 0; j < e_code[kk].size(); j++)
+					tmps[kk-k] += e_code[kk][j];
+				}
+				ll = kk - k;
+				for(j = k; j + ll <= m; j++)
 				{
 					e_code[j].clear();
-					for(i = 0; i < e_code[j+1].size(); i++)
-					e_code[j] += e_code[j+1][i];
+					for(i = 0; i < e_code[j+ll].size(); i++)
+					e_code[j] += e_code[j+ll][i];
 				}
-				e_code[m].clear();
-				for(i = 0; i < tmps.size(); i++)
-				e_code[m] += tmps[i];
+				for(kk = 0; j <= m; kk++, j++)
+				{
+					e_code[j].clear();
+					for(i = 0; i < tmps[kk].size(); i++)
+					e_code[j] += tmps[kk][i];
+				}
 				l--;
 				k--;
 			}
@@ -4834,8 +4843,8 @@ int main(int argc, char *argv[])
 	char c;
 	ofstream o;
 	ifstream ifs;
-	ifs.open(argv[2]);
-	o.open(argv[4]);
+	ifs.open(argv[3]);
+	o.open(argv[5]);
 	while((c = ifs.get()) != EOF)
 	{
 		a[n] = c;
@@ -4849,7 +4858,9 @@ int main(int argc, char *argv[])
 	Read_lines(0, n);
 	Adjust_order();
 	eeyore2tigger();
-	tigger2riscv(o);
+	for(int i = 0; i < t_code_num; i++)
+	o << t_code[i].Code << endl;
+	//tigger2riscv(o);
 
 	ifs.close();
 	o.close();
