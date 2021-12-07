@@ -3702,10 +3702,10 @@ void IF(int st, int en);
 						}
 						else
 						{
-							t_code[t_code_num].type = 3;
-							t_code[t_code_num].arg1 = k + 15;
+							t_code[t_code_num].type = 13;
+							t_code[t_code_num].arg1 = k + kk;
 							t_code[t_code_num].arg2 = 0;
-							t_code[t_code_num].Code = "s" + to_string(k) + " = a0";
+							t_code[t_code_num].Code = "load " + to_string(k+kk) + " a0";
 							t_code_num++;
 						}
 					}
