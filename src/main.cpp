@@ -4860,8 +4860,10 @@ int main(int argc, char *argv[])
 	Read_lines(0, n);
 	Adjust_order();
 	eeyore2tigger();
-	tigger2riscv(o);
+	//tigger2riscv(o);
 
+	for(int i = 0; i < t_code_num; i++)
+	o << t_code[i].Code << endl
 	ifs.close();
 	o.close();
 	
