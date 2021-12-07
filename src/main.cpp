@@ -3114,7 +3114,7 @@ void IF(int st, int en);
 		t_code[t_code_num].arg1 = k;
 		t_code[t_code_num].arg2 = kk + k;
 		t_code[t_code_num].arg3 = STK;
-		t_code[t_code_num].op = Name;
+		t_code[t_code_num].op += Name;
 		t_code[t_code_num].Code = "f_" + Name + " [" + to_string(k) + "] [" + to_string(kk + k) + "]";
 		t_code_num++;
 		for(j = 0; j < k; j++) // save args
@@ -3517,7 +3517,7 @@ void IF(int st, int en);
 						Name += e_code[i][j];
 					}
 					t_code[t_code_num].type = 10;
-					t_code[t_code_num].op = Name;
+					t_code[t_code_num].op += Name;
 					t_code[t_code_num].Code = "call f_" + Name;
 					t_code_num++;
 					j = 0;
