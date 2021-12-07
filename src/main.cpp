@@ -4845,8 +4845,8 @@ int main(int argc, char *argv[])
 	char c;
 	ofstream o;
 	ifstream ifs;
-	ifs.open(argv[2]);
-	o.open(argv[4]);
+	ifs.open(argv[3]);
+	o.open(argv[5]);
 	while((c = ifs.get()) != EOF)
 	{
 		a[n] = c;
