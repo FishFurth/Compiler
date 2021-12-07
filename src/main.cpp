@@ -4782,12 +4782,12 @@ void tigger2riscv(ofstream & o)
 		}
 		else if(t_code[i].type == 15) //loadaddr int10 reg
 		{
-			//if(t_code[i].arg1 < 512 && t_code[i].arg1 > -512)
-			//o << "addi " << regs[t_code[i].arg2] << ", sp, " << t_code[i].arg1 * 4 << endl;
-			//else
+			if(t_code[i].arg1 < 512 && t_code[i].arg1 > -512)
+			o << "addi " << regs[t_code[i].arg2] << ", sp, " << t_code[i].arg1 * 4 << endl;
+			else
 			{
 				o << "li t5, " << t_code[i].arg1 * 4 << endl;
-				o << "add " << regs[t_code[i].arg2] << ", t5, sp" << endl;
+				o << "add " << regs[t_code[i].arg2] << ", sp, t5" << endl;
 			}
 		}
 		else if(t_code[i].type == 16) // loadaddr global_var reg
