@@ -4755,23 +4755,23 @@ void tigger2riscv(ofstream & o)
 		}
 		else if(t_code[i].type == 12) // store reg int10
 		{
-			//if(t_code[i].arg2 < 512 && t_code[i].arg2 > -512)
-			//o << "sw " << regs[t_code[i].arg1] << ", " << t_code[i].arg2 * 4 << "(sp)" << endl;
-			//else
+			if(t_code[i].arg2 < 512 && t_code[i].arg2 > -512)
+			o << "sw " << regs[t_code[i].arg1] << ", " << t_code[i].arg2 * 4 << "(sp)" << endl;
+			else
 			{
 				o << "li t5 " << t_code[i].arg2 * 4 << endl;
-				o << "add  t5, t5, sp" << endl;
+				o << "add t5, t5, sp" << endl;
 				o << "sw " << regs[t_code[i].arg1] << ", 0(t5)" << endl;
 			}
 		}
 		else if(t_code[i].type == 13) // load int10 reg
 		{
-			//if(t_code[i].arg1 < 512 && t_code[i].arg1 > -512)
-			//o << "lw " << regs[t_code[i].arg2] << ", " << t_code[i].arg1 * 4 << "(sp)" << endl;
-			//else
+			if(t_code[i].arg1 < 512 && t_code[i].arg1 > -512)
+			o << "lw " << regs[t_code[i].arg2] << ", " << t_code[i].arg1 * 4 << "(sp)" << endl;
+			else
 			{
 				o << "li t5 " << t_code[i].arg1 * 4 << endl;
-				o << "add  t5, t5, sp" << endl;
+				o << "add t5, t5, sp" << endl;
 				o << "lw " << regs[t_code[i].arg2] << ", 0(t5)" << endl;
 			}
 		}
