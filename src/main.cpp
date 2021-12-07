@@ -3114,7 +3114,7 @@ void IF(int st, int en);
 		t_code[t_code_num].arg1 = k;
 		t_code[t_code_num].arg2 = kk + k;
 		t_code[t_code_num].arg3 = STK;
-		t_code[t_code_num].op += Name;
+		t_code[t_code_num].op = Name;
 		t_code[t_code_num].Code = "f_" + Name + " [" + to_string(k) + "] [" + to_string(kk + k) + "]";
 		t_code_num++;
 		for(j = 0; j < k; j++) // save args
@@ -3517,7 +3517,7 @@ void IF(int st, int en);
 						Name += e_code[i][j];
 					}
 					t_code[t_code_num].type = 10;
-					t_code[t_code_num].op += Name;
+					t_code[t_code_num].op = Name;
 					t_code[t_code_num].Code = "call f_" + Name;
 					t_code_num++;
 					j = 0;
@@ -4749,15 +4749,26 @@ void tigger2riscv(ofstream & o)
 		o << "call " << t_code[i].op << endl;
 		else if(t_code[i].type == 11)
 		{
-			o << "lw ra, " << t_code[i].arg1-4 << "(sp)" << endl;
-			o << "addi sp, sp, " << t_code[i].arg1 << endl;
+			if(t_code[i].arg1 > -2000 && t_code[i].arg1 < 2000)
+			{
+				o << "lw ra, " << t_code[i].arg1-4 << "(sp)" << endl;
+				o << "addi sp, sp, " << t_code[i].arg1 << endl;
+			}
+			else
+			{
+				o << "li t5, " << t_code[i].arg1 << endl;
+				o << "add t5, t5, sp" << endl;
+				o << "lw ra, -4(t5)" << endl;
+				o << "li t5, " << t_code[i].arg1 << endl;
+				o << "add sp, sp, t5" << endl;
+			}
 			o << "ret" << endl;
 		}
 		else if(t_code[i].type == 12) // store reg int10
 		{
-			//if(t_code[i].arg2 < 512 && t_code[i].arg2 > -512)
-			//o << "sw " << regs[t_code[i].arg1] << ", " << t_code[i].arg2 * 4 << "(sp)" << endl;
-			//else
+			if(t_code[i].arg2 < 512 && t_code[i].arg2 > -512)
+			o << "sw " << regs[t_code[i].arg1] << ", " << t_code[i].arg2 * 4 << "(sp)" << endl;
+			else
 			{
 				o << "li t5, " << t_code[i].arg2 * 4 << endl;
 				o << "add t5, t5, sp" << endl;
@@ -4766,9 +4777,9 @@ void tigger2riscv(ofstream & o)
 		}
 		else if(t_code[i].type == 13) // load int10 reg
 		{
-			//if(t_code[i].arg1 < 512 && t_code[i].arg1 > -512)
-			//o << "lw " << regs[t_code[i].arg2] << ", " << t_code[i].arg1 * 4 << "(sp)" << endl;
-			//else
+			if(t_code[i].arg1 < 512 && t_code[i].arg1 > -512)
+			o << "lw " << regs[t_code[i].arg2] << ", " << t_code[i].arg1 * 4 << "(sp)" << endl;
+			else
 			{
 				o << "li t5, " << t_code[i].arg1 * 4 << endl;
 				o << "add t5, t5, sp" << endl;
@@ -4787,7 +4798,7 @@ void tigger2riscv(ofstream & o)
 			else
 			{
 				o << "li t5, " << t_code[i].arg1 * 4 << endl;
-				o << "add " << regs[t_code[i].arg2] << ", sp, t5" << endl;
+				o << "add " << regs[t_code[i].arg2] << ", t5, sp" << endl;
 			}
 		}
 		else if(t_code[i].type == 16) // loadaddr global_var reg
@@ -4811,8 +4822,18 @@ void tigger2riscv(ofstream & o)
 			o << ".global " << t_code[i].op << endl;
 			o << ".type " << t_code[i].op << ", @function" << endl;
 			o << t_code[i].op << ":" << endl;
-			o << "addi sp, sp, " << -t_code[i].arg3 << endl;
-			o << "sw ra, " << t_code[i].arg3 - 4 << "(sp)" << endl;
+			if(t_code[i].arg3 < 2000 && t_code[i].arg3 > -2000)
+			{
+				o << "addi sp, sp, " << -t_code[i].arg3 << endl;
+				o << "sw ra, " << t_code[i].arg3 - 4 << "(sp)" << endl;
+			}
+			else
+			{
+				o << "li t5, " << t_code[i].arg3 << endl;
+				o << "sub sp, sp, t5" << endl;
+				o << "add t5, t5, sp" << endl;
+				o << "sw ra, -4(t5)" << endl;
+			}
 		}
 		else if(t_code[i].type == 20) // end func
 		o << ".size " << t_code[i].op << ", .-" << t_code[i].op << endl;
@@ -4845,8 +4866,8 @@ int main(int argc, char *argv[])
 	char c;
 	ofstream o;
 	ifstream ifs;
-	ifs.open(argv[3]);
-	o.open(argv[5]);
+	ifs.open(argv[2]);
+	o.open(argv[4]);
 	while((c = ifs.get()) != EOF)
 	{
 		a[n] = c;
@@ -4860,10 +4881,8 @@ int main(int argc, char *argv[])
 	Read_lines(0, n);
 	Adjust_order();
 	eeyore2tigger();
-	//tigger2riscv(o);
+	tigger2riscv(o);
 
-	for(int i = 0; i < t_code_num; i++)
-	o << t_code[i].Code << endl;
 	ifs.close();
 	o.close();
 	
