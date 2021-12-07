@@ -4863,7 +4863,7 @@ int main(int argc, char *argv[])
 	//tigger2riscv(o);
 
 	for(int i = 0; i < t_code_num; i++)
-	o << t_code[i].Code << endl
+	o << t_code[i].Code << endl;
 	ifs.close();
 	o.close();
 	
